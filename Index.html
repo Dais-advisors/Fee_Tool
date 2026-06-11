@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DAIS Internal Fee Tool V3.11</title>
+<!-- PDF Generation Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0}
+.header{background:#0b2f57;color:#fff;padding:18px}
+.container{max-width:1200px;margin:auto;padding:20px}
+.card{background:#fff;padding:20px;border-radius:10px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.grid-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px}
+
+/* Two-column layout for incomes */
+.income-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+@media (max-width: 768px) { .income-layout { grid-template-columns: 1fr; gap: 20px; } }
+
+.category-title { color: #0b2f57; font-size: 1.1em; font-weight: bold; margin-top: 15px; margin-bottom: 10px; }
+.check-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 0.95em; cursor: pointer; }
+.check-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; margin: 0; }
+
+input[type="text"], select{width:100%; padding:10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;}
+.btn{color:#fff;border:none;padding:12px 18px;border-radius:6px;cursor:pointer; margin-top: 5px; font-weight: bold;}
+pre{white-space:pre-wrap;background:#eef6ff;padding:15px;border-radius:8px; font-family: monospace; font-size: 14px;}
+
+/* Template is kept purely for data binding, never displayed on screen */
+#pdf-template { display: none; }
+
+/* Print Media Query - Simple UI hiding for standard Ctrl+P */
+@media print {
+    body { background: #fff; margin: 0; padding: 0;}
+    .header, .container { display: none !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+</style>
+</head>
+<body>
+<div class="header"><h1>DAIS Internal Fee Quotation Tool V3.11</h1></div>
+<div class="container">
+
+<div class="card">
+<div class="grid-top">
+<input type="text" id="clientName" placeholder="Client Name">
+<input type="text" id="mobile" placeholder="Mobile">
+<input type="text" id="staff" placeholder="Handled By">
+<input type="text" id="ay" value="AY 2026-27">
+<select id="gst"><option>No GST</option><option>GST Registered</option></select>
+</div>
+</div>
+
+<div class="card">
+<h2 style="color: #0b2f57; margin-top: 0; margin-bottom: 20px;">Income Sources</h2>
+
+<div class="income-layout">
+    <!-- Left Column -->
+    <div class="col">
+        <div class="category-title">Salary & Property</div>
+        <label class="check-row"><span>Salary / Pension</span> <input type="checkbox" id="salary"></label>
+        <label class="check-row"><span>One House Property</span> <input type="checkbox" id="onehp"></label>
+        <label class="check-row"><span>Multiple House Properties</span> <input type="checkbox" id="multihp"></label>
+
+        <div class="category-title">Other Sources</div>
+        <label class="check-row"><span>Interest Income</span> <input type="checkbox" id="interest"></label>
+        <label class="check-row"><span>Dividend Income</span> <input type="checkbox" id="dividend"></label>
+        <label class="check-row"><span>Family Pension</span> <input type="checkbox" id="familypension"></label>
+
+        <div class="category-title">Capital Gains</div>
+        <label class="check-row"><span>Mutual Funds</span> <input type="checkbox" id="mf"></label>
+        <label class="check-row"><span>Shares</span> <input type="checkbox" id="shares"></label>
+        <label class="check-row"><span>Property Sale</span> <input type="checkbox" id="property"></label>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col">
+        <div class="category-title">Business & Profession</div>
+        <label class="check-row"><span>Business Income</span> <input type="checkbox" id="business"></label>
+        <label class="check-row"><span>Professional Income</span> <input type="checkbox" id="professional"></label>
+        <label class="check-row"><span>Presumptive 44AD</span> <input type="checkbox" id="ad"></label>
+        <label class="check-row"><span>Presumptive 44ADA</span> <input type="checkbox" id="ada"></label>
+
+        <div class="category-title">Special Cases & Compliance</div>
+        <label class="check-row"><span>F&O Trading</span> <input type="checkbox" id="fo"></label>
+        <label class="check-row"><span>Intraday Trading</span> <input type="checkbox" id="intraday"></label>
+        <label class="check-row"><span>Foreign Assets</span> <input type="checkbox" id="foreignasset"></label>
+        <label class="check-row"><span>Foreign Income / NRI / DTAA</span> <input type="checkbox" id="foreignincome"></label>
+        <label class="check-row"><span>ESOP</span> <input type="checkbox" id="esop"></label>
+        <label class="check-row"><span>Crypto</span> <input type="checkbox" id="crypto"></label>
+        <label class="check-row"><span>Tax Notice</span> <input type="checkbox" id="notice"></label>
+        <label class="check-row"><span>Revised Return</span> <input type="checkbox" id="revised"></label>
+    </div>
+</div>
+</div>
+
+<div class="card">
+<div class="grid-top" style="align-items: center; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+<div>
+  <label style="font-weight:bold; display:block; margin-bottom:5px;">Demat Accounts</label>
+  <select id="demat">
+  <option>None</option><option>1</option><option>2-3</option><option>4+</option>
+  </select>
+</div>
+<div>
+  <label style="font-weight:bold; display:block; margin-bottom:5px;">Share/MF Transactions</label>
+  <select id="shareTxn">
+  <option>None</option><option>1-50</option><option>51-500</option><option>500+</option>
+  </select>
+</div>
+<div>
+  <label style="font-weight:bold; display:block; margin-bottom:5px;">Properties Transacted</label>
+  <select id="propTxn">
+  <option>None</option><option>1</option><option>2-3</option><option>4+</option>
+  </select>
+</div>
+</div><br>
+<button class="btn" style="background:#0b2f57; width: 100%; font-size: 1.1em;" onclick="calc()">Generate Assessment</button>
+</div>
+
+<div class="card">
+<pre id="out">Generate Assessment to view result.</pre>
+<div id="actions" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+</div>
+
+</div>
+
+<!-- Hidden Data Binding Template -->
+<div id="pdf-template">
+    <div class="pdf-header">
+        <h1>DAIS Advisors Private Limited</h1>
+        <p>PROFESSIONAL FEE QUOTATION</p>
+    </div>
+    
+    <table class="pdf-table">
+        <tr>
+            <th>Date</th><td id="pdf-date"></td>
+            <th>Assessment Year</th><td id="pdf-ay"></td>
+        </tr>
+        <tr>
+            <th>Client Name</th><td id="pdf-client"></td>
+            <th>Mobile</th><td id="pdf-mobile"></td>
+        </tr>
+        <tr>
+            <th>Applicable ITR</th><td id="pdf-itr"></td>
+            <th>GST Registered</th><td id="pdf-gst"></td>
+        </tr>
+    </table>
+
+    <div class="pdf-section">
+        <h3 style="color: #0b2f57; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px;">Scope of Work & Income Sources</h3>
+        <div id="pdf-incomes"></div>
+    </div>
+    
+    <div class="pdf-section">
+        <h3 style="color: #0b2f57; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px;">Account Attributes</h3>
+        <ul style="font-size: 14px; margin-top: 10px; color: #333;">
+            <li><strong>Demat Accounts:</strong> <span id="pdf-demat"></span></li>
+            <li><strong>Share/MF Transactions:</strong> <span id="pdf-shareTxn"></span></li>
+            <li><strong>Properties Transacted:</strong> <span id="pdf-propTxn"></span></li>
+            <li><strong>Risk Level Assessment:</strong> <span id="pdf-risk"></span></li>
+        </ul>
+    </div>
+
+    <table class="pdf-fee-table">
+        <tr>
+            <td style="width: 70%;">Base Professional Fee (<span id="pdf-itr-fee-label"></span>)</td>
+            <td style="width: 30%; text-align: right;" id="pdf-base"></td>
+        </tr>
+        <tr>
+            <td>Complexity Loading (Scope & Volume)</td>
+            <td style="text-align: right;" id="pdf-load"></td>
+        </tr>
+        <tr class="total-row">
+            <td>Recommended Professional Fee</td>
+            <td style="text-align: right;" id="pdf-total"></td>
+        </tr>
+    </table>
+    
+    <p style="font-size: 13px; font-weight: bold; margin-top: 20px; color: #0b2f57;">Disclaimer:</p>
+    <div style="font-size: 12px; margin-top: 5px; color: #555; line-height: 1.5; text-align: justify;">
+        <p style="margin: 0 0 8px 0;">All applicable statutory dues, taxes, and late filing penalties shall be borne and paid directly by the client.</p>
+        <p style="margin: 0 0 8px 0;">The above professional fees are indicative and based on the information currently available. Final fees may increase depending upon:</p>
+        <ul style="margin: 0 0 8px 0; padding-left: 20px;">
+            <li>Volume of transactions</li>
+            <li>Capital gain calculations</li>
+            <li>Number of Demat accounts</li>
+            <li>Foreign asset reporting</li>
+            <li>GST reconciliation</li>
+            <li>Notices and assessments</li>
+            <li>Revised/Defective returns</li>
+            <li>Additional advisory work</li>
+        </ul>
+        <p style="margin: 0;">Any increase shall be communicated before commencement of additional work.</p>
+    </div>
+
+    <table style="width: 100%; margin-top: 40px; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 15px;">
+        <tr>
+            <td style="text-align: left;">Generated By: <strong>DAIS Internal Fee Tool</strong></td>
+            <td style="text-align: right;">Handled By: <strong id="pdf-staff"></strong></td>
+        </tr>
+    </table>
+</div>
+
+<script>
+function calc(){
+const g=id=>document.getElementById(id);
+let itr='ITR-1',base=1000,load=0,risk='LOW';
+let triggers=[];
+
+const categories = {
+    'Salary & Property': [['salary', 'Salary / Pension'], ['onehp', 'One House Property'], ['multihp', 'Multiple House Properties']],
+    'Business & Profession': [['business', 'Business Income'], ['professional', 'Professional Income'], ['ad', 'Presumptive 44AD'], ['ada', 'Presumptive 44ADA']],
+    'Capital Gains': [['mf', 'Mutual Fund Capital Gains'], ['shares', 'Share Capital Gains'], ['property', 'Property Capital Gains']],
+    'Other Sources': [['interest', 'Interest Income'], ['dividend', 'Dividend Income'], ['familypension', 'Family Pension']],
+    'Special Cases & Compliance': [['fo', 'F&O Trading'], ['intraday', 'Intraday Trading'], ['foreignasset', 'Foreign Assets'], ['foreignincome', 'Foreign Income/NRI/DTAA'], ['esop', 'ESOP'], ['crypto', 'Crypto'], ['notice', 'Tax Notice'], ['revised', 'Revised Return']]
+};
+
+let groupedIncomeText = "";
+let pdfIncomeHTML = "";
+
+for (const [group, items] of Object.entries(categories)) {
+    let groupItems = [];
+    items.forEach(x => { 
+        if (g(x[0]) && g(x[0]).checked) groupItems.push(x[1]); 
+    });
+    if (groupItems.length > 0) {
+        groupedIncomeText += `\n${group}\n✓ ` + groupItems.join('\n✓ ') + '\n';
+        pdfIncomeHTML += `<h4 style="margin: 10px 0 5px; color: #0b2f57; font-size:14px; border-bottom: 1px solid #eee; padding-bottom: 4px;">${group}</h4><ul style="margin: 5px 0 15px 20px; padding: 0; font-size:13px; color: #333;"><li>` + groupItems.join('</li><li>') + `</li></ul>`;
+    }
+}
+
+// Logic checks to see if the main categories are actually checked
+const hasSharesMF = g('mf').checked || g('shares').checked;
+const hasProperty = g('property').checked;
+
+// Trigger Custom Quote for heavy volume (Only applies if the related checkbox is ticked)
+if(g('foreignincome').checked || (hasSharesMF && g('shareTxn').value==='500+') || (hasProperty && g('propTxn').value==='4+')){
+    g('out').textContent='CUSTOM QUOTE REQUIRED (Premium Case)';
+    g('actions').innerHTML = '';
+    return;
+}
+
+const gstApplicable=g('business').checked||g('professional').checked||g('ad').checked||g('ada').checked;
+const gstReg=g('gst').value==='GST Registered';
+
+if(g('business').checked||g('professional').checked||g('fo').checked||g('intraday').checked){
+ itr='ITR-3'; base=gstReg?2000:1500;
+}else if(g('ad').checked||g('ada').checked){
+ itr='ITR-4'; base=gstReg?1500:1000;
+}else if(g('mf').checked||g('shares').checked||g('property').checked||g('multihp').checked||g('foreignasset').checked||g('dividend').checked){
+ itr='ITR-2'; base=1500;
+}
+
+if(g('foreignasset').checked){load+=500;triggers.push('✓ Foreign Assets')}
+if(g('multihp').checked){load+=500;triggers.push('✓ Multiple House Property')}
+
+// Demat Loading Rules
+if(g('demat').value==='2-3'){load+=500;triggers.push('✓ 2-3 Demat Accounts')}
+if(g('demat').value==='4+'){load+=1000;triggers.push('✓ 4+ Demat Accounts')}
+
+// Transaction Loading Rules (Ignored if parent checkboxes are not ticked)
+if(hasSharesMF && g('shareTxn').value==='51-500'){load+=500;triggers.push('✓ 51-500 Share/MF Txns')}
+if(hasProperty && g('propTxn').value==='2-3'){load+=500;triggers.push('✓ 2-3 Property Txns')}
+
+if(g('fo').checked){load+=1000;triggers.push('✓ F&O')}
+if(g('intraday').checked){load+=1000;triggers.push('✓ Intraday')}
+if(g('esop').checked){load+=1000;triggers.push('✓ ESOP')}
+if(g('crypto').checked){load+=1000;triggers.push('✓ Crypto')}
+if(g('notice').checked){load+=1000;triggers.push('✓ Notice')}
+if(g('revised').checked){load+=1000;triggers.push('✓ Revised Return')}
+
+if(load>0) risk=load>=1000?'HIGH':'MODERATE';
+
+let quote=`📋 *Professional Fee Quotation | DAIS Advisors*
+
+Client Name: ${g('clientName').value || 'N/A'}
+Mobile: ${g('mobile').value || 'N/A'}
+Assessment Year: ${g('ay').value}
+
+Applicable Return: ${itr}
+${gstApplicable ? `GST Registered: ${gstReg?'Yes':'No'}\n` : ''}
+Income Sources:${groupedIncomeText ? groupedIncomeText : '\nNone Selected\n'}
+Demat Accounts: ${g('demat').value}
+Share/MF Txns: ${hasSharesMF ? g('shareTxn').value : 'N/A'}
+Properties Transacted: ${hasProperty ? g('propTxn').value : 'N/A'}
+
+Risk Level: ${risk}
+Complexity Triggered By:
+${triggers.length?triggers.join('\n'):'None'}
+
+Fee Computation
+${itr} Base Fee: ₹${base}
+Complexity Loading: ₹${load}
+*Recommended Professional Fee: ₹${base+load}*
+
+Disclaimer:
+• All applicable statutory dues/taxes shall be paid by the client.
+• The above professional fees are indicative and based on the information currently available.
+
+Final fees may increase depending upon:
+• Volume of transactions
+• Capital gain calculations
+• Number of Demat accounts
+• Foreign asset reporting
+• GST reconciliation
+• Notices and assessments
+• Revised/Defective returns
+• Additional advisory work
+
+Any increase shall be communicated before commencement of additional work.
+
+Generated By: DAIS Internal Fee Tool
+Handled By: ${g('staff').value || 'N/A'}`;
+
+// Store the pure quote text globally so the clipboard copies the asterisks properly
+window.currentQuote = quote;
+
+// Display text output (We keep the asterisks visible here so the user knows what will be bolded)
+g('out').textContent = quote;
+
+// Populate the Hidden Data Template
+g('pdf-date').innerText = new Date().toLocaleDateString('en-IN');
+g('pdf-client').innerText = g('clientName').value || 'N/A';
+g('pdf-mobile').innerText = g('mobile').value || 'N/A';
+g('pdf-ay').innerText = g('ay').value || 'N/A';
+g('pdf-staff').innerText = g('staff').value || 'N/A';
+g('pdf-itr').innerText = itr;
+g('pdf-gst').innerText = gstReg ? 'Yes' : 'No';
+g('pdf-demat').innerText = g('demat').value;
+g('pdf-shareTxn').innerText = hasSharesMF ? g('shareTxn').value : 'N/A';
+g('pdf-propTxn').innerText = hasProperty ? g('propTxn').value : 'N/A';
+g('pdf-risk').innerText = risk;
+g('pdf-itr-fee-label').innerText = itr;
+g('pdf-base').innerText = '₹' + base.toLocaleString('en-IN');
+g('pdf-load').innerText = '₹' + load.toLocaleString('en-IN');
+g('pdf-total').innerText = '₹' + (base + load).toLocaleString('en-IN');
+g('pdf-incomes').innerHTML = pdfIncomeHTML || '<p style="font-size:13px; color:#555;">None Selected</p>';
+
+// Create Action Buttons
+let wa='https://wa.me/918529081017?text='+encodeURIComponent(quote);
+g('actions').innerHTML=`
+    <button class="btn" style="background: #25D366;" onclick="window.open('${wa}')">Send to WhatsApp</button>
+    <button class="btn" style="background: #d32f2f;" onclick="downloadPDF()">Download PDF Quote</button>
+    <button class="btn" style="background: #607d8b;" onclick="navigator.clipboard.writeText(window.currentQuote); alert('Quote successfully copied to clipboard!');">Copy Text</button>
+`;
+}
+
+function downloadPDF() {
+    // 1. Grab the raw data inside the hidden template
+    const templateContent = document.getElementById('pdf-template').innerHTML;
+    const clientName = document.getElementById('clientName').value || 'Client';
+
+    // 2. Build a standalone, bulletproof HTML string with embedded CSS
+    const htmlString = `
+    <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; color: #333; padding: 40px; background: #fff; }
+                .pdf-header { text-align: center; border-bottom: 3px solid #0b2f57; padding-bottom: 15px; margin-bottom: 25px; }
+                .pdf-header h1 { color: #0b2f57; margin: 0; font-size: 26px; text-transform: uppercase; letter-spacing: 1px;}
+                .pdf-header p { margin: 5px 0 0 0; color: #555; font-size: 14px; font-weight: bold; text-transform: uppercase;}
+                .pdf-section { margin-bottom: 20px; }
+                .pdf-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                .pdf-table th, .pdf-table td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
+                .pdf-table th { background-color: #f4f7fb; color: #0b2f57; width: 25%; }
+                .pdf-table td { width: 25%; }
+                .pdf-fee-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                .pdf-fee-table th, .pdf-fee-table td { padding: 12px; font-size: 16px; border-bottom: 1px solid #eee; text-align: left;}
+                .pdf-fee-table .total-row { font-weight: bold; color: #0b2f57; font-size: 18px; border-top: 2px solid #0b2f57; border-bottom: 2px solid #0b2f57; background: #f4f7fb;}
+            </style>
+        </head>
+        <body>
+            ${templateContent}
+        </body>
+    </html>
+    `;
+
+    // 3. Pass the string directly to html2pdf
+    const opt = {
+      margin:       0.5,
+      filename:     `DAIS_Fee_Quotation_${clientName.replace(/\s+/g, '_')}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(htmlString).save();
+}
+</script>
+</body></html>
