@@ -300,10 +300,10 @@ if(g('demat').value==='4+'){load+=1000;triggers.push('✓ 4+ Demat Accounts')}
 
 // Transaction Loading Rules (Ignored if parent checkboxes are not ticked)
 if(hasSharesMF && g('shareTxn').value==='51-500'){load+=500;triggers.push('✓ 51-500 Share/MF Txns')}
-if(hasProperty && g('propTxn').value==='2-3'){load+=500;triggers.push('✓ 2-3 Property Txns')}
+if(hasProperty && g('propTxn').value==='2-3'){load+=1000;triggers.push('✓ 2-3 Property Txns')}
 
-if(g('fo').checked){load+=1000;triggers.push('✓ F&O')}
-if(g('intraday').checked){load+=1000;triggers.push('✓ Intraday')}
+if(g('fo').checked){load+=500;triggers.push('✓ F&O')}
+if(g('intraday').checked){load+=500;triggers.push('✓ Intraday')}
 if(g('esop').checked){load+=1000;triggers.push('✓ ESOP')}
 if(g('crypto').checked){load+=1000;triggers.push('✓ Crypto')}
 if(g('notice').checked){load+=1000;triggers.push('✓ Notice')}
@@ -402,13 +402,150 @@ scopeServices.push('Reconciliation with Form 26AS, AIS & TIS');
 scopeServices.push('Post-filing acknowledgment (ITR-V) and e-verification support');
 g('pdf-scope').innerHTML = scopeServices.map(s => `<li>${s}</li>`).join('');
 
+// ── Log to Google Sheet ──────────────────────────────────
+const sheetPayload = {
+    action:     'log',
+    date:       new Date().toLocaleDateString('en-IN'),
+    client:     g('clientName').value || 'N/A',
+    mobile:     g('mobile').value || 'N/A',
+    ay:         g('ay').value || 'N/A',
+    itr:        itr,
+    base:       base,
+    loading:    load,
+    total:      base + load,
+    staff:      g('staff').value || 'N/A',
+    complexity: risk,
+};
+
+let currentRowId = null;
+
+fetch('https://script.google.com/macros/s/AKfycbzfXWWOwgBQMtEWnCXTmRqJjyDZSPvx5QNtpv4N_BwXhEj3-fMqyUJtB1RKrgUa9IsAMA/exec', {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(sheetPayload)
+}).then(() => {
+    // no-cors means we can't read response — rowId returned via workaround below
+}).catch(() => {});
+
+// Generate a local rowId (same logic as Apps Script: 'Q' + Date.now())
+currentRowId = 'Q' + Date.now();
+window._lastRowId = currentRowId;
+
 // Create Action Buttons
 let wa='https://wa.me/918529081017?text='+encodeURIComponent(quote);
 g('actions').innerHTML=`
     <button class="btn" style="background: #25D366;" onclick="window.open('${wa}')">Send to WhatsApp</button>
     <button class="btn" style="background: #d32f2f;" onclick="downloadPDF()">Download PDF Quote</button>
     <button class="btn" style="background: #607d8b;" onclick="navigator.clipboard.writeText(window.currentQuote); alert('Quote successfully copied to clipboard!');">Copy Text</button>
+    <button class="btn" style="background: #2e7d32;" onclick="markAsPaid()">✓ Mark as Paid</button>
 `;
+}
+
+function markAsPaid() {
+    const rowId = window._lastRowId;
+    if (!rowId) {
+        alert('Please generate an assessment first before marking as paid.');
+        return;
+    }
+
+    // Show reference input modal
+    const overlay = document.createElement('div');
+    overlay.id = 'paid-overlay';
+    overlay.style.cssText = `
+        position:fixed; top:0; left:0; width:100%; height:100%;
+        background:rgba(0,0,0,0.55); z-index:9999;
+        display:flex; align-items:center; justify-content:center;`;
+
+    overlay.innerHTML = `
+        <div style="background:#fff; border-radius:10px; padding:32px 28px;
+                    width:380px; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
+            <div style="color:#0b2f57; font-size:16px; font-weight:bold;
+                        margin-bottom:6px;">Mark as Paid</div>
+            <div style="color:#666; font-size:12px; margin-bottom:20px;">
+                Enter the payment reference number (UTR / Transaction ID / Cheque No.)
+                for bank statement reconciliation.
+            </div>
+            <label style="font-size:12px; font-weight:bold; color:#333;">
+                Payment Reference No. <span style="color:red;">*</span>
+            </label>
+            <input id="ref-input" type="text" placeholder="e.g. UTR324567891234"
+                style="width:100%; margin-top:6px; padding:10px 12px;
+                       border:1.5px solid #ccc; border-radius:6px;
+                       font-size:13px; box-sizing:border-box; outline:none;"
+                onfocus="this.style.borderColor='#0b2f57'"
+                onblur="this.style.borderColor='#ccc'">
+            <div id="ref-error" style="color:red; font-size:11px;
+                                       margin-top:4px; display:none;">
+                Please enter a payment reference number.
+            </div>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button onclick="confirmPaid()"
+                    style="flex:1; padding:11px; background:#2e7d32; color:#fff;
+                           border:none; border-radius:6px; font-size:13px;
+                           font-weight:bold; cursor:pointer;">
+                    ✓ Confirm Payment
+                </button>
+                <button onclick="document.getElementById('paid-overlay').remove()"
+                    style="flex:1; padding:11px; background:#f5f5f5; color:#555;
+                           border:1px solid #ddd; border-radius:6px;
+                           font-size:13px; cursor:pointer;">
+                    Cancel
+                </button>
+            </div>
+        </div>`;
+
+    document.body.appendChild(overlay);
+    document.getElementById('ref-input').focus();
+}
+
+function confirmPaid() {
+    const ref = document.getElementById('ref-input').value.trim();
+    if (!ref) {
+        document.getElementById('ref-error').style.display = 'block';
+        return;
+    }
+
+    const rowId = window._lastRowId;
+    const btn = document.querySelector('#paid-overlay button');
+    btn.textContent = 'Saving...';
+    btn.disabled = true;
+
+    fetch('https://script.google.com/macros/s/AKfycbzfXWWOwgBQMtEWnCXTmRqJjyDZSPvx5QNtpv4N_BwXhEj3-fMqyUJtB1RKrgUa9IsAMA/exec', {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            action:    'markPaid',
+            rowId:     rowId,
+            reference: ref
+        })
+    }).then(() => {
+        document.getElementById('paid-overlay').remove();
+        // Update Mark as Paid button to show confirmed
+        const btns = document.getElementById('actions');
+        const paidBtn = btns.querySelector('button:last-child');
+        if (paidBtn) {
+            paidBtn.textContent = '✓ Marked as Paid';
+            paidBtn.style.background = '#888';
+            paidBtn.disabled = true;
+        }
+        // Show success toast
+        const toast = document.createElement('div');
+        toast.textContent = `✓ Payment recorded  |  Ref: ${ref}`;
+        toast.style.cssText = `
+            position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+            background:#2e7d32; color:#fff; padding:12px 24px;
+            border-radius:8px; font-size:13px; font-weight:bold;
+            box-shadow:0 4px 16px rgba(0,0,0,0.2); z-index:9999;
+            animation: fadeIn 0.3s ease;`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+        window._lastRowId = null; // prevent double-marking
+    }).catch(() => {
+        document.getElementById('paid-overlay').remove();
+        alert('Network error. Please check your connection and try again.');
+    });
 }
 
 function downloadPDF() {
