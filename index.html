@@ -461,135 +461,125 @@ function downloadPDF() {
     const ML = 18, MR = 18, MT = 16;
     const CW = PW - ML - MR;   // content width = 174mm
 
-    // ── Colour palette ─────────────────────────────────────────────
-    const NAVY   = [11,  47,  87];   // #0b2f57
-    const GOLD   = [255, 192,  0];   // #FFC000
-    const LGRAY  = [245, 246, 248];  // light row bg
-    const MGRAY  = [160, 160, 160];  // mid gray lines
-    const DGRAY  = [ 80,  80,  80];  // body text
+    // ── Colour palette — minimal, near-monochrome ──────────────────
+    const NAVY   = [11,  47,  87];    // #0b2f57 — used sparingly, headings only
+    const GOLD   = [255, 192,  0];    // #FFC000 — one accent line only
+    const BLACK  = [30,  30,  30];    // near-black body text
+    const MID    = [100, 100, 100];   // secondary labels
+    const RULE   = [200, 200, 200];   // hairline rules
+    const LGRAY  = [248, 248, 248];   // barely-there table row tint
     const WHITE  = [255, 255, 255];
 
-    let y = MT;  // cursor
+    let y = MT;
 
     // ── Helpers ────────────────────────────────────────────────────
     function setFont(style, size, color) {
         doc.setFont('helvetica', style);
         doc.setFontSize(size);
-        doc.setTextColor(...(color || DGRAY));
+        doc.setTextColor(...(color || BLACK));
     }
-    function line(x1, y1, x2, y2, color, w) {
-        doc.setDrawColor(...(color || MGRAY));
-        doc.setLineWidth(w || 0.25);
-        doc.line(x1, y1, x2, y2);
-    }
-    function rect(x, rx, ry, rw, rh, fillColor) {
-        doc.setFillColor(...fillColor);
-        doc.rect(rx, ry, rw, rh, 'F');
+    function hrule(yy, color, w) {
+        doc.setDrawColor(...(color || RULE));
+        doc.setLineWidth(w || 0.2);
+        doc.line(ML, yy, ML + CW, yy);
     }
     function sectionTitle(label) {
-        y += 6;
-        // Navy left bar
-        doc.setFillColor(...NAVY);
-        doc.rect(ML, y, 2.5, 5, 'F');
-        // Gold accent bar
-        doc.setFillColor(...GOLD);
-        doc.rect(ML, y + 5, 2.5, 0.8, 'F');
-        // Label
-        setFont('bold', 8.5, NAVY);
-        doc.text(label.toUpperCase(), ML + 5, y + 3.8);
-        // Full-width underline
-        line(ML, y + 5.8, ML + CW, y + 5.8, MGRAY, 0.2);
-        y += 10;
+        y += 7;
+        setFont('bold', 8, NAVY);
+        doc.text(label.toUpperCase(), ML, y);
+        y += 2;
+        hrule(y, GOLD, 0.5);   // single gold underline — only colour accent per section
+        y += 5;
     }
     function checkRow(text) {
-        setFont('normal', 9, DGRAY);
-        // tick mark in gold
-        doc.setTextColor(...GOLD);
-        doc.text('✓', ML + 2, y);
-        doc.setTextColor(...DGRAY);
-        doc.text(text, ML + 8, y);
-        y += 5.2;
-    }
-    function noteRow(text) {
-        setFont('normal', 8, [120,120,120]);
-        const lines = doc.splitTextToSize(text, CW - 4);
-        doc.text(lines, ML + 2, y);
-        y += lines.length * 4.5;
+        const lines = doc.splitTextToSize(text, CW - 8);
+        setFont('normal', 7.8, MID);
+        doc.text('–', ML + 1, y);          // simple dash, not coloured tick
+        setFont('normal', 7.8, BLACK);
+        doc.text(lines, ML + 6, y);
+        y += lines.length * 4.8;
     }
 
     // ── PAGE HEADER ────────────────────────────────────────────────
-    // Top navy band
-    doc.setFillColor(...NAVY);
-    doc.rect(0, 0, PW, 38, 'F');
-    // Gold accent stripe
-    doc.setFillColor(...GOLD);
-    doc.rect(0, 38, PW, 1.2, 'F');
-
-    // Logo (attempt load, draw placeholder text if unavailable)
     function drawHeader(logoDataUrl) {
+        // White background — no navy band
+        // Logo top-left, small
         if (logoDataUrl) {
-            // Logo on left side of header
-            doc.addImage(logoDataUrl, 'PNG', ML, 5, 22, 22);
+            doc.addImage(logoDataUrl, 'PNG', ML, 10, 18, 18);
         }
-        // Firm name
-        setFont('bold', 16, WHITE);
-        doc.text('DAIS ADVISORS PRIVATE LIMITED', logoDataUrl ? ML + 26 : ML, 16);
-        setFont('normal', 8.5, GOLD);
-        doc.text('PROFESSIONAL FEE QUOTATION', logoDataUrl ? ML + 26 : ML, 23);
-        // Date top-right
-        setFont('normal', 8, [200, 210, 225]);
-        doc.text('Date: ' + d.date, PW - MR, 16, { align: 'right' });
-        doc.text('Ref: ' + d.ay, PW - MR, 22, { align: 'right' });
+        const textX = logoDataUrl ? ML + 22 : ML;
 
-        y = 46;
-        continueDoc(logoDataUrl);
+        setFont('bold', 14, NAVY);
+        doc.text('DAIS ADVISORS PRIVATE LIMITED', textX, 20);
+        setFont('normal', 8, MID);
+        doc.text('Professional Fee Quotation', textX, 26);
+
+        // Date / ref right-aligned
+        setFont('normal', 7.5, MID);
+        doc.text(d.date, PW - MR, 20, { align: 'right' });
+        doc.text(d.ay,   PW - MR, 26, { align: 'right' });
+
+        // Single gold rule under header
+        y = 32;
+        doc.setDrawColor(...GOLD);
+        doc.setLineWidth(0.6);
+        doc.line(ML, y, ML + CW, y);
+        // Thin gray rule just below
+        doc.setDrawColor(...RULE);
+        doc.setLineWidth(0.2);
+        doc.line(ML, y + 0.8, ML + CW, y + 0.8);
+
+        y = 38;
+        continueDoc();
     }
 
-    function continueDoc(logoDataUrl) {
+    function continueDoc() {
 
         // ── CLIENT DETAILS ─────────────────────────────────────────
         sectionTitle('Client Details');
 
-        // 2-column KV grid
         const kvData = [
-            ['Client Name', d.client,       'Assessment Year', d.ay],
-            ['Mobile',      d.mobile,        'Applicable ITR',  d.itr],
-            ['GST Status',  d.gst === 'Yes' ? 'GST Registered' : 'Not Registered',
-                            'Handled By',   d.staff],
+            ['Client Name',     d.client,   'Assessment Year', d.ay   ],
+            ['Mobile',          d.mobile,   'Applicable ITR',  d.itr  ],
+            ['GST Status',      d.gst === 'Yes' ? 'GST Registered' : 'Not Registered',
+                                            'Handled By',      d.staff],
         ];
-        const col1x = ML, col2x = ML + CW * 0.27, col3x = ML + CW * 0.52, col4x = ML + CW * 0.77;
+        const c1 = ML, c2 = ML + CW * 0.26, c3 = ML + CW * 0.52, c4 = ML + CW * 0.76;
+
         kvData.forEach((row, i) => {
-            const rowY = y + i * 8;
-            // alternating bg
+            const ry = y + i * 8;
             if (i % 2 === 0) {
                 doc.setFillColor(...LGRAY);
-                doc.rect(ML, rowY - 4.5, CW, 8, 'F');
+                doc.rect(ML, ry - 4, CW, 8, 'F');
             }
-            setFont('bold', 8, NAVY);
-            doc.text(row[0], col1x + 2, rowY);
-            setFont('normal', 8, DGRAY);
-            doc.text(row[1] || '—', col2x, rowY);
-            setFont('bold', 8, NAVY);
-            doc.text(row[2], col3x + 2, rowY);
-            setFont('normal', 8, DGRAY);
-            doc.text(row[3] || '—', col4x, rowY);
+            setFont('bold', 7.8, MID);
+            doc.text(row[0], c1 + 2, ry);
+            setFont('normal', 7.8, BLACK);
+            doc.text(row[1] || '—', c2, ry);
+            setFont('bold', 7.8, MID);
+            doc.text(row[2], c3 + 2, ry);
+            setFont('normal', 7.8, BLACK);
+            doc.text(row[3] || '—', c4, ry);
         });
         y += kvData.length * 8 + 2;
 
-        // ── RECOMMENDED FEE HIGHLIGHT BOX ──────────────────────────
+        // ── RECOMMENDED FEE — restrained box ──────────────────────
         y += 4;
+        // Thin border box, no fill
+        doc.setDrawColor(...RULE);
+        doc.setLineWidth(0.3);
+        doc.rect(ML, y, CW, 13, 'S');
+        // Left navy bar, narrow
         doc.setFillColor(...NAVY);
-        doc.roundedRect(ML, y, CW, 14, 2, 2, 'F');
-        doc.setFillColor(...GOLD);
-        doc.roundedRect(ML, y, 4, 14, 2, 2, 'F');
-        doc.rect(ML + 2, y, 2, 14, 'F'); // square off right side of gold bar
-        setFont('normal', 9, [200, 210, 225]);
-        doc.text('Recommended Professional Fee', ML + 9, y + 5.5);
-        setFont('bold', 13, WHITE);
-        doc.text(d.total, ML + 9, y + 11);
-        setFont('normal', 8, GOLD);
-        doc.text('All inclusive  |  Valid 30 days', PW - MR, y + 8.5, { align: 'right' });
-        y += 20;
+        doc.rect(ML, y, 2, 13, 'F');
+
+        setFont('normal', 7.5, MID);
+        doc.text('Recommended Professional Fee', ML + 6, y + 5);
+        setFont('bold', 12, NAVY);
+        doc.text(d.total, ML + 6, y + 10.5);
+        setFont('normal', 7.5, MID);
+        doc.text('All-inclusive  ·  Valid for 30 days', PW - MR, y + 8, { align: 'right' });
+        y += 18;
 
         // ── INCOME SOURCES ─────────────────────────────────────────
         if (incomes.length > 0) {
@@ -600,92 +590,73 @@ function downloadPDF() {
         // ── COMPLEXITY FACTORS ─────────────────────────────────────
         sectionTitle('Complexity Factors Considered');
         if (noComplexity || complexities.length === 0) {
-            setFont('normal', 8.5, [130,130,130]);
+            setFont('normal', 7.8, MID);
             doc.text('No complexity loading factors applicable.', ML + 2, y);
-            y += 5.5;
+            y += 5;
         } else {
             complexities.forEach(item => checkRow(item));
         }
-        setFont('bold', 8, NAVY);
+        setFont('normal', 7.8, MID);
         doc.text('Overall Case Complexity:', ML + 2, y);
-        setFont('bold', 8.5, d.risk === 'HIGH' ? [180,30,30] : d.risk === 'MODERATE' ? [180,100,0] : [0,130,60]);
-        doc.text(d.risk, ML + 46, y);
+        setFont('bold', 7.8, BLACK);
+        doc.text(d.risk, ML + 44, y);
         y += 7;
 
-        // ── FEE COMPUTATION TABLE ──────────────────────────────────
+        // ── FEE COMPUTATION ────────────────────────────────────────
         sectionTitle('Fee Computation');
 
-        // Header row
-        doc.setFillColor(...NAVY);
-        doc.rect(ML, y - 1, CW, 8, 'F');
-        setFont('bold', 8.5, WHITE);
-        doc.text('Particulars', ML + 3, y + 4);
-        doc.text('Amount', ML + CW - 3, y + 4, { align: 'right' });
-        y += 8;
+        // Table header — very light
+        doc.setFillColor(...LGRAY);
+        doc.rect(ML, y - 1, CW, 7, 'F');
+        hrule(y - 1, RULE, 0.3);
+        setFont('bold', 7.8, MID);
+        doc.text('Particulars', ML + 3, y + 3.5);
+        doc.text('Amount', ML + CW - 3, y + 3.5, { align: 'right' });
+        hrule(y + 6, RULE, 0.3);
+        y += 7;
 
-        // Data rows
-        feeRows.forEach((row, i) => {
-            if (i % 2 === 0) {
-                doc.setFillColor(...LGRAY);
-                doc.rect(ML, y - 1, CW, 8, 'F');
-            }
-            setFont('normal', 8.5, DGRAY);
+        feeRows.forEach((row) => {
+            setFont('normal', 8, BLACK);
             doc.text(row[0], ML + 3, y + 4);
             doc.text(row[1], ML + CW - 3, y + 4, { align: 'right' });
+            hrule(y + 7, RULE, 0.15);
             y += 8;
         });
 
-        // Total row
-        doc.setFillColor(...GOLD);
-        doc.rect(ML, y - 1, CW, 9, 'F');
-        setFont('bold', 9.5, NAVY);
+        // Total row — navy text, light rule above, no fill
+        hrule(y, NAVY, 0.4);
+        y += 1;
+        setFont('bold', 9, NAVY);
         doc.text('Total Recommended Professional Fee', ML + 3, y + 5);
         doc.text(d.total, ML + CW - 3, y + 5, { align: 'right' });
-        y += 13;
+        hrule(y + 7, NAVY, 0.4);
+        y += 12;
 
         // ── SCOPE OF SERVICES ──────────────────────────────────────
         if (scope.length > 0) {
             sectionTitle('Scope of Services');
-            scope.forEach(item => {
-                const lines = doc.splitTextToSize(item, CW - 12);
-                doc.setTextColor(...GOLD);
-                setFont('normal', 9, GOLD);
-                doc.text('✓', ML + 2, y);
-                setFont('normal', 8.5, DGRAY);
-                doc.text(lines, ML + 8, y);
-                y += lines.length * 5;
-            });
+            scope.forEach(item => checkRow(item));
         }
 
         // ── IMPORTANT NOTE ─────────────────────────────────────────
+        y += 5;
+        hrule(y, RULE, 0.2);
         y += 4;
-        doc.setFillColor(252, 249, 235);
-        doc.setDrawColor(...GOLD);
-        doc.setLineWidth(0.5);
-        doc.roundedRect(ML, y, CW, 22, 1.5, 1.5, 'FD');
-        // gold left accent
-        doc.setFillColor(...GOLD);
-        doc.rect(ML, y, 3, 22, 'F');
-        doc.roundedRect(ML, y, 3, 22, 1, 1, 'F');
-
-        setFont('bold', 8.5, NAVY);
-        doc.text('Important Note', ML + 7, y + 6);
-        setFont('normal', 7.8, [80, 80, 80]);
-        const noteText = 'The above professional fee is indicative and based on information presently available. Final fees may vary based on volume of transactions, number of Demat accounts, foreign asset disclosure, notices/assessments, or additional advisory work. Any increase shall be communicated before commencement of additional work.';
-        const noteLines = doc.splitTextToSize(noteText, CW - 11);
-        doc.text(noteLines, ML + 7, y + 12);
-        y += 26;
+        setFont('bold', 7.5, MID);
+        doc.text('IMPORTANT NOTE', ML, y);
+        y += 4.5;
+        setFont('normal', 7.5, MID);
+        const noteText = 'The above professional fee is indicative and based on information presently available. Final fees may vary based on volume of transactions, number of Demat accounts, foreign asset disclosure, notices / assessments, or additional advisory work. Any increase shall be communicated before commencement of additional work.';
+        const noteLines = doc.splitTextToSize(noteText, CW);
+        doc.text(noteLines, ML, y);
+        y += noteLines.length * 4.2 + 4;
+        hrule(y, RULE, 0.2);
 
         // ── FOOTER ─────────────────────────────────────────────────
-        // Footer band at bottom
-        doc.setFillColor(...NAVY);
-        doc.rect(0, PH - 14, PW, 14, 'F');
-        doc.setFillColor(...GOLD);
-        doc.rect(0, PH - 14, PW, 1, 'F');
-
-        setFont('normal', 7.5, [180, 195, 210]);
-        doc.text('Generated by DAIS Internal Fee Tool', ML, PH - 7);
-        doc.text('DAIS Advisors Private Limited  |  www.daisadvisors.com', PW - MR, PH - 7, { align: 'right' });
+        setFont('normal', 7, MID);
+        doc.text('Generated by DAIS Internal Fee Tool', ML, PH - 10);
+        doc.text('DAIS Advisors Private Limited  ·  www.daisadvisors.com', PW - MR, PH - 10, { align: 'right' });
+        hrule(PH - 12, RULE, 0.2);
 
         // ── SAVE ───────────────────────────────────────────────────
         const fn = 'DAIS_Fee_Quotation_' +
