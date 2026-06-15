@@ -126,83 +126,121 @@ pre{white-space:pre-wrap;background:#eef6ff;padding:15px;border-radius:8px; font
 
 <!-- Hidden Data Binding Template -->
 <div id="pdf-template">
+
+    <!-- HEADER -->
     <div class="pdf-header avoid-break">
-        <!-- Brand Logo Embedded -->
-        <img src="LOGO_WHATAPP.png" alt="Dais Advisors Logo" class="firm-logo">
+        <img id="pdf-logo" src="LOGO_WHATAPP.png" alt="DAIS Advisors Logo" class="firm-logo">
         <h1>DAIS ADVISORS PRIVATE LIMITED</h1>
         <p>PROFESSIONAL FEE QUOTATION</p>
     </div>
-    
-    <table class="pdf-table avoid-break">
-        <tr>
-            <th>Date</th><td id="pdf-date"></td>
-            <th>Assessment Year</th><td id="pdf-ay"></td>
-        </tr>
-        <tr>
-            <th>Client Name</th><td id="pdf-client"></td>
-            <th>Mobile</th><td id="pdf-mobile"></td>
-        </tr>
-        <tr>
-            <th>Applicable ITR</th><td id="pdf-itr"></td>
-            <th>GST Registered</th><td id="pdf-gst"></td>
-        </tr>
-    </table>
 
+    <!-- SECTION 1: CLIENT DETAILS -->
     <div class="pdf-section avoid-break">
-        <h3 style="color: #0b2f57; border-bottom: 2px solid #FFC000; padding-bottom: 5px; margin-bottom: 10px;">Scope of Work & Income Sources</h3>
+        <h3 class="pdf-sec-title">Client Details</h3>
+        <table class="pdf-table">
+            <tr>
+                <th>Client Name</th><td id="pdf-client"></td>
+                <th>Mobile</th><td id="pdf-mobile"></td>
+            </tr>
+            <tr>
+                <th>Assessment Year</th><td id="pdf-ay"></td>
+                <th>Date</th><td id="pdf-date"></td>
+            </tr>
+            <tr>
+                <th>Applicable ITR</th><td id="pdf-itr"></td>
+                <th>GST Registered</th><td id="pdf-gst"></td>
+            </tr>
+            <tr>
+                <th>Handled By</th><td id="pdf-staff" colspan="3"></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- SECTION 2: INCOME SOURCES CONSIDERED -->
+    <div class="pdf-section avoid-break">
+        <h3 class="pdf-sec-title">Income Sources Considered</h3>
         <div id="pdf-incomes"></div>
     </div>
-    
+
+    <!-- SECTION 3: ACCOUNT ATTRIBUTES -->
     <div class="pdf-section avoid-break">
-        <h3 style="color: #0b2f57; border-bottom: 2px solid #FFC000; padding-bottom: 5px; margin-bottom: 10px;">Account Attributes</h3>
-        <ul style="font-size: 14px; margin-top: 10px; color: #333;">
-            <li><strong>Demat Accounts:</strong> <span id="pdf-demat"></span></li>
-            <li><strong>Share/MF Transactions:</strong> <span id="pdf-shareTxn"></span></li>
-            <li><strong>Properties Transacted:</strong> <span id="pdf-propTxn"></span></li>
-            <li><strong>Risk Level Assessment:</strong> <span id="pdf-risk"></span></li>
-        </ul>
+        <h3 class="pdf-sec-title">Account Attributes</h3>
+        <table class="pdf-table">
+            <tr>
+                <th style="width:40%">Demat Accounts</th>
+                <td id="pdf-demat"></td>
+            </tr>
+            <tr>
+                <th>Share / MF Transactions</th>
+                <td id="pdf-shareTxn"></td>
+            </tr>
+            <tr>
+                <th>Property Transactions</th>
+                <td id="pdf-propTxn"></td>
+            </tr>
+        </table>
     </div>
 
-    <table class="pdf-fee-table avoid-break">
-        <tr>
-            <td style="width: 70%;">Base Professional Fee (<span id="pdf-itr-fee-label"></span>)</td>
-            <td style="width: 30%; text-align: right;" id="pdf-base"></td>
-        </tr>
-        <tr>
-            <td>Complexity Loading (Scope & Volume)</td>
-            <td style="text-align: right;" id="pdf-load"></td>
-        </tr>
-        <tr class="total-row">
-            <td>Recommended Professional Fee</td>
-            <td style="text-align: right;" id="pdf-total"></td>
-        </tr>
-    </table>
-    
-    <div class="avoid-break">
-        <p style="font-size: 13px; font-weight: bold; margin-top: 20px; color: #0b2f57;">Disclaimer:</p>
-        <div style="font-size: 12px; margin-top: 5px; color: #555; line-height: 1.5; text-align: justify;">
-            <p style="margin: 0 0 8px 0;">All applicable statutory dues, taxes, and late filing penalties shall be borne and paid directly by the client.</p>
-            <p style="margin: 0 0 8px 0;">The above professional fees are indicative and based on the information currently available. Final fees may increase depending upon:</p>
-            <ul style="margin: 0 0 8px 0; padding-left: 20px;">
-                <li>Volume of transactions</li>
-                <li>Capital gain calculations</li>
-                <li>Number of Demat accounts</li>
-                <li>Foreign asset reporting</li>
-                <li>GST reconciliation</li>
-                <li>Notices and assessments</li>
-                <li>Revised/Defective returns</li>
-                <li>Additional advisory work</li>
+    <!-- SECTION 4: COMPLEXITY FACTORS -->
+    <div class="pdf-section avoid-break">
+        <h3 class="pdf-sec-title">Complexity Factors Considered</h3>
+        <div id="pdf-complexity-none" style="font-size:13px; color:#555; display:none;">No complexity loading factors applicable.</div>
+        <ul id="pdf-complexity-list" style="font-size:13px; color:#333; margin:8px 0 0 0; padding-left:20px; line-height:1.9;"></ul>
+        <p style="font-size:12px; color:#777; margin:8px 0 0 0;">Overall Case Complexity: <strong id="pdf-risk" style="color:#0b2f57;"></strong></p>
+    </div>
+
+    <!-- SECTION 5: SCOPE OF SERVICES -->
+    <div class="pdf-section avoid-break">
+        <h3 class="pdf-sec-title">Scope of Services Included</h3>
+        <ul id="pdf-scope" style="font-size:13px; color:#333; margin:8px 0 0 0; padding-left:20px; line-height:1.9;"></ul>
+    </div>
+
+    <!-- SECTION 6: FEE COMPUTATION -->
+    <div class="pdf-section avoid-break">
+        <h3 class="pdf-sec-title">Fee Computation</h3>
+        <table class="pdf-fee-table">
+            <tr>
+                <td style="width:70%;">Base Professional Fee (<span id="pdf-itr-fee-label"></span>)</td>
+                <td style="width:30%; text-align:right;" id="pdf-base"></td>
+            </tr>
+            <tr>
+                <td>Complexity Loading (Scope &amp; Volume)</td>
+                <td style="text-align:right;" id="pdf-load"></td>
+            </tr>
+            <tr class="total-row">
+                <td>Recommended Professional Fee (Inclusive of all)</td>
+                <td style="text-align:right;" id="pdf-total"></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- SECTION 7: DISCLAIMER -->
+    <div class="pdf-section avoid-break">
+        <h3 class="pdf-sec-title">Disclaimer</h3>
+        <div style="font-size:12px; color:#555; line-height:1.6; text-align:justify;">
+            <p style="margin:0 0 6px 0;">All applicable statutory dues, taxes, and late filing penalties shall be borne and paid directly by the client.</p>
+            <p style="margin:0 0 6px 0;">The above professional fees are indicative and based on the information currently available. Final fees may increase depending upon:</p>
+            <ul style="margin:4px 0 6px 0; padding-left:20px;">
+                <li>Volume of transactions and capital gain calculations</li>
+                <li>Number of Demat accounts and investment folios</li>
+                <li>Foreign asset reporting requirements</li>
+                <li>GST reconciliation and compliance complexity</li>
+                <li>Notices, assessments, and departmental proceedings</li>
+                <li>Revised / defective returns and rectification filings</li>
+                <li>Additional advisory, opinion, or representation work</li>
             </ul>
-            <p style="margin: 0;">Any increase shall be communicated before commencement of additional work.</p>
+            <p style="margin:0;">Any increase in fees shall be communicated to the client prior to commencement of additional work. This quotation is valid for 30 days from the date of issuance.</p>
         </div>
     </div>
 
+    <!-- FOOTER -->
     <table class="pdf-footer avoid-break">
         <tr>
-            <td style="text-align: left;">Generated By: <strong>DAIS Internal Fee Tool</strong></td>
-            <td style="text-align: right;">Handled By: <strong id="pdf-staff"></strong></td>
+            <td style="text-align:left;">Generated By: <strong>DAIS Internal Fee Tool</strong></td>
+            <td style="text-align:right;">For, <strong>DAIS Advisors Private Limited</strong></td>
         </tr>
     </table>
+
 </div>
 
 <script>
@@ -311,6 +349,61 @@ g('pdf-load').textContent = '₹' + load.toLocaleString('en-IN');
 g('pdf-total').textContent = '₹' + (base + load).toLocaleString('en-IN');
 g('pdf-incomes').innerHTML = pdfIncomeHTML || '<p style="font-size:13px; color:#555;">None Selected</p>';
 
+// Populate Complexity Factors
+const complexityLabels = {
+    'foreignasset':  'Foreign Assets (Schedule FA required)',
+    'multihp':       'Multiple House Properties',
+    'fo':            'F&O Trading (Books of Accounts required)',
+    'intraday':      'Intraday Trading',
+    'esop':          'ESOP Perquisites',
+    'crypto':        'Crypto / VDA Transactions',
+    'notice':        'Tax Notice / Departmental Proceedings',
+    'revised':       'Revised / Rectification Return',
+};
+const dematLabel = { '2-3': '2–3 Demat Accounts', '4+': '4+ Demat Accounts' };
+const shareTxnLabel = { '51-500': '51–500 Share/MF Transactions', '500+': '500+ Share/MF Transactions (Custom Quote)' };
+const propTxnLabel = { '2-3': '2–3 Property Transactions', '4+': '4+ Property Transactions (Custom Quote)' };
+
+let complexityItems = [];
+for (const [id, label] of Object.entries(complexityLabels)) {
+    if (g(id) && g(id).checked) complexityItems.push(label);
+}
+if (dematLabel[g('demat').value]) complexityItems.push(dematLabel[g('demat').value]);
+if (hasSharesMF && shareTxnLabel[g('shareTxn').value]) complexityItems.push(shareTxnLabel[g('shareTxn').value]);
+if (hasProperty && propTxnLabel[g('propTxn').value]) complexityItems.push(propTxnLabel[g('propTxn').value]);
+
+if (complexityItems.length > 0) {
+    g('pdf-complexity-none').style.display = 'none';
+    g('pdf-complexity-list').innerHTML = complexityItems.map(x => `<li>${x}</li>`).join('');
+} else {
+    g('pdf-complexity-none').style.display = 'block';
+    g('pdf-complexity-list').innerHTML = '';
+}
+
+// Populate Scope of Services
+const scopeServices = [];
+scopeServices.push(`Preparation and filing of ${itr} for ${g('ay').value || 'AY 2026-27'}`);
+scopeServices.push('Computation of total income and tax liability under Old / New Regime (whichever applicable)');
+if (g('salary').checked) scopeServices.push('Salary income reconciliation with Form 16 and Form 26AS');
+if (g('interest').checked || g('dividend').checked || g('familypension').checked) scopeServices.push('Other sources income computation (Interest / Dividend / Family Pension)');
+if (g('mf').checked || g('shares').checked) scopeServices.push('Capital gains computation from Mutual Funds and Shares');
+if (g('property').checked) scopeServices.push('Capital gains computation from Property Sale (with indexation benefit)');
+if (g('onehp').checked || g('multihp').checked) scopeServices.push('House Property income computation including interest on loan deduction');
+if (g('business').checked || g('professional').checked) scopeServices.push('Profit & Loss preparation and business / professional income computation');
+if (g('ad').checked) scopeServices.push('Presumptive income computation under Section 44AD');
+if (g('ada').checked) scopeServices.push('Presumptive income computation under Section 44ADA');
+if (g('fo').checked) scopeServices.push('F&O trading income computation with books of accounts (P&L from broker)');
+if (g('intraday').checked) scopeServices.push('Intraday trading income / loss computation');
+if (g('foreignasset').checked) scopeServices.push('Schedule FA – Foreign Assets and Income disclosure');
+if (g('foreignincome').checked) scopeServices.push('Foreign income computation with DTAA relief / NRI tax planning');
+if (g('esop').checked) scopeServices.push('ESOP perquisite valuation and capital gain computation on sale');
+if (g('crypto').checked) scopeServices.push('Crypto / VDA income computation and Schedule VDA filing');
+if (g('notice').checked) scopeServices.push('Response preparation and representation for Tax Notice / Assessment');
+if (g('revised').checked) scopeServices.push('Filing of Revised / Rectification Return');
+scopeServices.push('Reconciliation with Form 26AS, AIS & TIS');
+scopeServices.push('Post-filing acknowledgment (ITR-V) and e-verification support');
+g('pdf-scope').innerHTML = scopeServices.map(s => `<li>${s}</li>`).join('');
+
 // Create Action Buttons
 let wa='https://wa.me/918529081017?text='+encodeURIComponent(quote);
 g('actions').innerHTML=`
@@ -321,56 +414,90 @@ g('actions').innerHTML=`
 }
 
 function downloadPDF() {
-    // 1. Grab the raw data inside the hidden template
-    const templateContent = document.getElementById('pdf-template').innerHTML;
     const clientName = document.getElementById('clientName').value || 'Client';
 
-    // 2. Build a standalone, bulletproof HTML string with embedded CSS
-    const htmlString = `
-    <html>
-        <head>
-            <style>
-                body { font-family: Arial, sans-serif; color: #333; padding: 40px; background: #fff; }
-                
-                /* Prevent blank pages/weird cuts */
-                .avoid-break { page-break-inside: avoid; break-inside: avoid; }
-                
-                /* Premium Branding with Navy and Gold */
-                .pdf-header { text-align: center; border-bottom: 3px solid #0b2f57; padding-bottom: 15px; margin-bottom: 25px; position: relative;}
-                .pdf-header::after { content: ''; position: absolute; bottom: -6px; left: 0; width: 100%; height: 2px; background-color: #FFC000; }
-                
-                /* Logo Integration */
-                .firm-logo { max-height: 80px; margin-bottom: 10px; }
-                
-                .pdf-header h1 { color: #0b2f57; margin: 0; font-size: 26px; text-transform: uppercase; letter-spacing: 1px;}
-                .pdf-header p { margin: 5px 0 0 0; color: #555; font-size: 14px; font-weight: bold; text-transform: uppercase;}
-                .pdf-section { margin-bottom: 20px; }
-                .pdf-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                .pdf-table th, .pdf-table td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
-                .pdf-table th { background-color: #fdfaf0; color: #0b2f57; width: 25%; font-weight: bold; }
-                .pdf-table td { width: 25%; }
-                .pdf-fee-table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #ddd; }
-                .pdf-fee-table th, .pdf-fee-table td { padding: 12px; font-size: 16px; border-bottom: 1px solid #eee; text-align: left;}
-                .pdf-fee-table .total-row { font-weight: bold; color: #0b2f57; font-size: 18px; border-top: 2px solid #0b2f57; border-bottom: 2px solid #0b2f57; background: #fdfaf0;}
-                .pdf-footer { width: 100%; margin-top: 40px; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 15px; }
-            </style>
-        </head>
-        <body>
-            ${templateContent}
-        </body>
-    </html>
-    `;
+    // Convert logo to base64 first (avoids CORS/cross-origin issues in html2pdf)
+    function getLogoBase64(callback) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            try { callback(canvas.toDataURL('image/png')); }
+            catch(e) { callback(null); } // CORS fallback
+        };
+        img.onerror = function() { callback(null); };
+        img.src = 'LOGO_WHATAPP.png?' + Date.now(); // cache-bust
+    }
 
-    // 3. Pass the string directly to html2pdf (useCORS: true added for GitHub logo hosting)
-    const opt = {
-      margin:       0.5,
-      filename: \`DAIS_Fee_Quotation_\${clientName.replace(/\\s+/g,'_')}_\${(document.getElementById('ay').value||'AY').replace(/\\s+/g,'')}_\${new Date().getFullYear()}\${String(new Date().getMonth()+1).padStart(2,'0')}\${String(new Date().getDate()).padStart(2,'0')}.pdf\`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true },
-      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-    };
-    
-    html2pdf().set(opt).from(htmlString).save();
+    getLogoBase64(function(logoDataUrl) {
+        // Replace logo src with base64 (or hide if failed)
+        const logoEl = document.getElementById('pdf-logo');
+        if (logoDataUrl) {
+            logoEl.src = logoDataUrl;
+        } else {
+            logoEl.style.display = 'none';
+        }
+
+        const templateContent = document.getElementById('pdf-template').innerHTML;
+
+        const htmlString = `
+        <html>
+            <head>
+                <style>
+                    * { box-sizing: border-box; }
+                    body { font-family: Arial, sans-serif; color: #333; padding: 32px 40px; background: #fff; font-size: 13px; }
+                    .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+
+                    /* Header */
+                    .pdf-header { text-align: center; border-bottom: 3px solid #0b2f57; padding-bottom: 15px; margin-bottom: 22px; position: relative; }
+                    .pdf-header::after { content: ''; position: absolute; bottom: -6px; left: 0; width: 100%; height: 2px; background-color: #FFC000; }
+                    .firm-logo { max-height: 72px; margin-bottom: 8px; }
+                    .pdf-header h1 { color: #0b2f57; margin: 4px 0 0 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
+                    .pdf-header p { margin: 4px 0 0 0; color: #555; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+
+                    /* Section titles */
+                    .pdf-sec-title { color: #0b2f57; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #FFC000; padding-bottom: 5px; margin: 18px 0 10px 0; }
+
+                    /* Detail table */
+                    .pdf-section { margin-bottom: 14px; }
+                    .pdf-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+                    .pdf-table th, .pdf-table td { border: 1px solid #ddd; padding: 8px 10px; font-size: 12px; text-align: left; }
+                    .pdf-table th { background-color: #fdfaf0; color: #0b2f57; width: 22%; font-weight: bold; white-space: nowrap; }
+
+                    /* Fee table */
+                    .pdf-fee-table { width: 100%; border-collapse: collapse; border: 1px solid #ccc; margin-top: 8px; }
+                    .pdf-fee-table th, .pdf-fee-table td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #eee; text-align: left; }
+                    .pdf-fee-table .total-row { font-weight: bold; color: #0b2f57; font-size: 15px; border-top: 2px solid #0b2f57; border-bottom: 2px solid #0b2f57; background: #fdfaf0; }
+
+                    /* Footer */
+                    .pdf-footer { width: 100%; margin-top: 30px; font-size: 11px; color: #666; border-top: 1px solid #ccc; padding-top: 12px; border-collapse: collapse; }
+                    .pdf-footer td { padding: 2px 0; }
+
+                    ul { margin: 4px 0 0 0; padding-left: 20px; }
+                    li { margin-bottom: 3px; }
+                </style>
+            </head>
+            <body>
+                ${templateContent}
+            </body>
+        </html>`;
+
+        const opt = {
+            margin: [0.4, 0.5, 0.4, 0.5],
+            filename: `DAIS_Fee_Quotation_${clientName.replace(/\s+/g,'_')}_${(document.getElementById('ay').value||'AY').replace(/\s+/g,'')}_${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(htmlString).save().then(function() {
+            // Restore original logo src after PDF is done
+            if (logoEl) logoEl.src = 'LOGO_WHATAPP.png';
+        });
+    });
 }
 </script>
 </body></html>
