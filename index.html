@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DAIS Internal Fee Tool V3.11</title>
+<!-- PDF Generation Library -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0}
@@ -53,6 +54,7 @@ pre{white-space:pre-wrap;background:#eef6ff;padding:15px;border-radius:8px; font
 <h2 style="color: #0b2f57; margin-top: 0; margin-bottom: 20px;">Income Sources</h2>
 
 <div class="income-layout">
+    <!-- Left Column -->
     <div class="col">
         <div class="category-title">Salary & Property</div>
         <label class="check-row"><span>Salary / Pension</span> <input type="checkbox" id="salary"></label>
@@ -70,6 +72,7 @@ pre{white-space:pre-wrap;background:#eef6ff;padding:15px;border-radius:8px; font
         <label class="check-row"><span>Property Sale</span> <input type="checkbox" id="property"></label>
     </div>
 
+    <!-- Right Column -->
     <div class="col">
         <div class="category-title">Business & Profession</div>
         <label class="check-row"><span>Business Income</span> <input type="checkbox" id="business"></label>
@@ -121,22 +124,85 @@ pre{white-space:pre-wrap;background:#eef6ff;padding:15px;border-radius:8px; font
 
 </div>
 
+<!-- Hidden Data Binding Template -->
 <div id="pdf-template">
-    <span id="pdf-date"></span>
-    <span id="pdf-client"></span>
-    <span id="pdf-mobile"></span>
-    <span id="pdf-ay"></span>
-    <span id="pdf-staff"></span>
-    <span id="pdf-itr"></span>
-    <span id="pdf-gst"></span>
-    <span id="pdf-demat"></span>
-    <span id="pdf-shareTxn"></span>
-    <span id="pdf-propTxn"></span>
-    <span id="pdf-risk"></span>
-    <span id="pdf-base"></span>
-    <span id="pdf-load"></span>
-    <span id="pdf-total"></span>
-    <div id="pdf-incomes"></div>
+    <div class="pdf-header avoid-break">
+        <!-- Brand Logo Embedded -->
+        <img src="LOGO_WHATAPP.png" alt="Dais Advisors Logo" class="firm-logo">
+        <h1>DAIS ADVISORS PRIVATE LIMITED</h1>
+        <p>PROFESSIONAL FEE QUOTATION</p>
+    </div>
+    
+    <table class="pdf-table avoid-break">
+        <tr>
+            <th>Date</th><td id="pdf-date"></td>
+            <th>Assessment Year</th><td id="pdf-ay"></td>
+        </tr>
+        <tr>
+            <th>Client Name</th><td id="pdf-client"></td>
+            <th>Mobile</th><td id="pdf-mobile"></td>
+        </tr>
+        <tr>
+            <th>Applicable ITR</th><td id="pdf-itr"></td>
+            <th>GST Registered</th><td id="pdf-gst"></td>
+        </tr>
+    </table>
+
+    <div class="pdf-section avoid-break">
+        <h3 style="color: #0b2f57; border-bottom: 2px solid #FFC000; padding-bottom: 5px; margin-bottom: 10px;">Scope of Work & Income Sources</h3>
+        <div id="pdf-incomes"></div>
+    </div>
+    
+    <div class="pdf-section avoid-break">
+        <h3 style="color: #0b2f57; border-bottom: 2px solid #FFC000; padding-bottom: 5px; margin-bottom: 10px;">Account Attributes</h3>
+        <ul style="font-size: 14px; margin-top: 10px; color: #333;">
+            <li><strong>Demat Accounts:</strong> <span id="pdf-demat"></span></li>
+            <li><strong>Share/MF Transactions:</strong> <span id="pdf-shareTxn"></span></li>
+            <li><strong>Properties Transacted:</strong> <span id="pdf-propTxn"></span></li>
+            <li><strong>Risk Level Assessment:</strong> <span id="pdf-risk"></span></li>
+        </ul>
+    </div>
+
+    <table class="pdf-fee-table avoid-break">
+        <tr>
+            <td style="width: 70%;">Base Professional Fee (<span id="pdf-itr-fee-label"></span>)</td>
+            <td style="width: 30%; text-align: right;" id="pdf-base"></td>
+        </tr>
+        <tr>
+            <td>Complexity Loading (Scope & Volume)</td>
+            <td style="text-align: right;" id="pdf-load"></td>
+        </tr>
+        <tr class="total-row">
+            <td>Recommended Professional Fee</td>
+            <td style="text-align: right;" id="pdf-total"></td>
+        </tr>
+    </table>
+    
+    <div class="avoid-break">
+        <p style="font-size: 13px; font-weight: bold; margin-top: 20px; color: #0b2f57;">Disclaimer:</p>
+        <div style="font-size: 12px; margin-top: 5px; color: #555; line-height: 1.5; text-align: justify;">
+            <p style="margin: 0 0 8px 0;">All applicable statutory dues, taxes, and late filing penalties shall be borne and paid directly by the client.</p>
+            <p style="margin: 0 0 8px 0;">The above professional fees are indicative and based on the information currently available. Final fees may increase depending upon:</p>
+            <ul style="margin: 0 0 8px 0; padding-left: 20px;">
+                <li>Volume of transactions</li>
+                <li>Capital gain calculations</li>
+                <li>Number of Demat accounts</li>
+                <li>Foreign asset reporting</li>
+                <li>GST reconciliation</li>
+                <li>Notices and assessments</li>
+                <li>Revised/Defective returns</li>
+                <li>Additional advisory work</li>
+            </ul>
+            <p style="margin: 0;">Any increase shall be communicated before commencement of additional work.</p>
+        </div>
+    </div>
+
+    <table class="pdf-footer avoid-break">
+        <tr>
+            <td style="text-align: left;">Generated By: <strong>DAIS Internal Fee Tool</strong></td>
+            <td style="text-align: right;">Handled By: <strong id="pdf-staff"></strong></td>
+        </tr>
+    </table>
 </div>
 
 <script>
@@ -167,9 +233,11 @@ for (const [group, items] of Object.entries(categories)) {
     }
 }
 
+// Logic checks to see if the main categories are actually checked
 const hasSharesMF = g('mf').checked || g('shares').checked;
 const hasProperty = g('property').checked;
 
+// Trigger Custom Quote for heavy volume (Only applies if the related checkbox is ticked)
 if(g('foreignincome').checked || (hasSharesMF && g('shareTxn').value==='500+') || (hasProperty && g('propTxn').value==='4+')){
     g('out').textContent='CUSTOM QUOTE REQUIRED (Premium Case)';
     g('actions').innerHTML = '';
@@ -190,9 +258,11 @@ if(g('business').checked||g('professional').checked||g('fo').checked||g('intrada
 if(g('foreignasset').checked){load+=500;triggers.push('✓ Foreign Assets')}
 if(g('multihp').checked){load+=500;triggers.push('✓ Multiple House Property')}
 
+// Demat Loading Rules
 if(g('demat').value==='2-3'){load+=500;triggers.push('✓ 2-3 Demat Accounts')}
 if(g('demat').value==='4+'){load+=1000;triggers.push('✓ 4+ Demat Accounts')}
 
+// Transaction Loading Rules (Ignored if parent checkboxes are not ticked)
 if(hasSharesMF && g('shareTxn').value==='51-500'){load+=500;triggers.push('✓ 51-500 Share/MF Txns')}
 if(hasProperty && g('propTxn').value==='2-3'){load+=500;triggers.push('✓ 2-3 Property Txns')}
 
@@ -205,6 +275,7 @@ if(g('revised').checked){load+=1000;triggers.push('✓ Revised Return')}
 
 if(load>0) risk=load>=1000?'HIGH':'MODERATE';
 
+
 let quote=`📋 *Professional Fee Quotation | DAIS Advisors*
 
 Dear ${g('clientName').value || 'Client'},
@@ -216,9 +287,13 @@ Applicable Income Tax Return Category: ${itr}.
 Regards,
 DAIS Advisors`;
 
+// Store the pure quote text globally so the clipboard copies the asterisks properly
 window.currentQuote = quote;
+
+// Display text output (We keep the asterisks visible here so the user knows what will be bolded)
 g('out').textContent = quote;
 
+// Populate the Hidden Data Template - FIXED: Uses textContent to securely capture hidden data
 g('pdf-date').textContent = new Date().toLocaleDateString('en-IN');
 g('pdf-client').textContent = g('clientName').value || 'N/A';
 g('pdf-mobile').textContent = g('mobile').value || 'N/A';
@@ -230,11 +305,13 @@ g('pdf-demat').textContent = g('demat').value;
 g('pdf-shareTxn').textContent = hasSharesMF ? g('shareTxn').value : 'N/A';
 g('pdf-propTxn').textContent = hasProperty ? g('propTxn').value : 'N/A';
 g('pdf-risk').textContent = risk;
+g('pdf-itr-fee-label').textContent = itr;
 g('pdf-base').textContent = '₹' + base.toLocaleString('en-IN');
 g('pdf-load').textContent = '₹' + load.toLocaleString('en-IN');
 g('pdf-total').textContent = '₹' + (base + load).toLocaleString('en-IN');
 g('pdf-incomes').innerHTML = pdfIncomeHTML || '<p style="font-size:13px; color:#555;">None Selected</p>';
 
+// Create Action Buttons
 let wa='https://wa.me/918529081017?text='+encodeURIComponent(quote);
 g('actions').innerHTML=`
     <button class="btn" style="background: #25D366;" onclick="window.open('${wa}')">Send to WhatsApp</button>
@@ -244,150 +321,53 @@ g('actions').innerHTML=`
 }
 
 function downloadPDF() {
-    const clientName = document.getElementById('pdf-client').textContent || 'Client';
-    const ay = document.getElementById('pdf-ay').textContent || 'N/A';
-    const itr = document.getElementById('pdf-itr').textContent;
-    const baseFee = document.getElementById('pdf-base').textContent;
-    const loadFee = document.getElementById('pdf-load').textContent;
-    const totalFee = document.getElementById('pdf-total').textContent;
-    const incomesHTML = document.getElementById('pdf-incomes').innerHTML || '<p style="font-size:13px; color:#555; margin-left: 20px;">None Selected</p>';
-    const demat = document.getElementById('pdf-demat').textContent;
-    const shareTxn = document.getElementById('pdf-shareTxn').textContent;
-    const propTxn = document.getElementById('pdf-propTxn').textContent;
+    // 1. Grab the raw data inside the hidden template
+    const templateContent = document.getElementById('pdf-template').innerHTML;
+    const clientName = document.getElementById('clientName').value || 'Client';
 
-    // RESTORED: Your original tabular layout with new branding!
+    // 2. Build a standalone, bulletproof HTML string with embedded CSS
     const htmlString = `
     <html>
         <head>
             <style>
-                body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; padding: 40px; background: #fff; }
+                body { font-family: Arial, sans-serif; color: #333; padding: 40px; background: #fff; }
                 
-                /* Prevent blank pages */
+                /* Prevent blank pages/weird cuts */
                 .avoid-break { page-break-inside: avoid; break-inside: avoid; }
                 
-                /* Premium Branding Header */
-                .pdf-header { text-align: center; border-bottom: 3px solid #0b2f57; position: relative; padding-bottom: 15px; margin-bottom: 25px; }
+                /* Premium Branding with Navy and Gold */
+                .pdf-header { text-align: center; border-bottom: 3px solid #0b2f57; padding-bottom: 15px; margin-bottom: 25px; position: relative;}
                 .pdf-header::after { content: ''; position: absolute; bottom: -6px; left: 0; width: 100%; height: 2px; background-color: #FFC000; }
+                
+                /* Logo Integration */
                 .firm-logo { max-height: 80px; margin-bottom: 10px; }
+                
                 .pdf-header h1 { color: #0b2f57; margin: 0; font-size: 26px; text-transform: uppercase; letter-spacing: 1px;}
                 .pdf-header p { margin: 5px 0 0 0; color: #555; font-size: 14px; font-weight: bold; text-transform: uppercase;}
-                
                 .pdf-section { margin-bottom: 20px; }
-                .section-title { color: #0b2f57; border-bottom: 2px solid #FFC000; padding-bottom: 5px; margin-bottom: 10px; font-size: 16px; font-weight: bold; }
-                
-                /* Info Table */
                 .pdf-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
                 .pdf-table th, .pdf-table td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
                 .pdf-table th { background-color: #fdfaf0; color: #0b2f57; width: 25%; font-weight: bold; }
                 .pdf-table td { width: 25%; }
-                
-                /* Fee Table */
                 .pdf-fee-table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #ddd; }
-                .pdf-fee-table th, .pdf-fee-table td { padding: 12px; font-size: 15px; border-bottom: 1px solid #eee; text-align: left;}
-                .pdf-fee-table th { background-color: #0b2f57; color: white; }
-                .pdf-fee-table .amount { text-align: right; }
-                .total-row { font-weight: bold; color: #0b2f57; font-size: 18px; border-top: 2px solid #0b2f57; border-bottom: 2px solid #0b2f57; background: #fdfaf0;}
-                
-                /* Disclaimer */
-                .disclaimer-title { font-size: 13px; font-weight: bold; margin-top: 20px; color: #0b2f57; }
-                .disclaimer-text { font-size: 12px; margin-top: 5px; color: #555; line-height: 1.5; text-align: justify; }
-                .disclaimer-text ul { margin: 5px 0 8px 0; padding-left: 20px; }
-                
-                /* Footer */
-                .pdf-footer { width: 100%; margin-top: 40px; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 15px; display: flex; justify-content: space-between; }
+                .pdf-fee-table th, .pdf-fee-table td { padding: 12px; font-size: 16px; border-bottom: 1px solid #eee; text-align: left;}
+                .pdf-fee-table .total-row { font-weight: bold; color: #0b2f57; font-size: 18px; border-top: 2px solid #0b2f57; border-bottom: 2px solid #0b2f57; background: #fdfaf0;}
+                .pdf-footer { width: 100%; margin-top: 40px; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 15px; }
             </style>
         </head>
         <body>
-            <div class="pdf-header avoid-break">
-                <img src="LOGO_WHATAPP.png" alt="Dais Advisors Logo" class="firm-logo">
-                <h1>DAIS ADVISORS PRIVATE LIMITED</h1>
-                <p>PROFESSIONAL FEE QUOTATION</p>
-            </div>
-            
-            <table class="pdf-table avoid-break">
-                <tr>
-                    <th>Date</th><td>${new Date().toLocaleDateString('en-IN')}</td>
-                    <th>Assessment Year</th><td>${ay}</td>
-                </tr>
-                <tr>
-                    <th>Client Name</th><td>${clientName}</td>
-                    <th>Mobile</th><td>${document.getElementById('pdf-mobile').textContent || 'N/A'}</td>
-                </tr>
-                <tr>
-                    <th>Applicable ITR</th><td>${itr}</td>
-                    <th>GST Registered</th><td>${document.getElementById('pdf-gst').textContent}</td>
-                </tr>
-            </table>
-
-            <div class="pdf-section avoid-break">
-                <div class="section-title">Scope of Work & Income Sources</div>
-                ${incomesHTML}
-            </div>
-            
-            <div class="pdf-section avoid-break">
-                <div class="section-title">Account Attributes</div>
-                <ul style="font-size: 14px; margin-top: 10px; color: #333; padding-left: 20px;">
-                    <li><strong>Demat Accounts:</strong> ${demat}</li>
-                    <li><strong>Share/MF Transactions:</strong> ${shareTxn}</li>
-                    <li><strong>Properties Transacted:</strong> ${propTxn}</li>
-                    <li><strong>Risk Level Assessment:</strong> ${document.getElementById('pdf-risk').textContent}</li>
-                </ul>
-            </div>
-
-            <table class="pdf-fee-table avoid-break">
-                <tr>
-                    <th>Particulars</th>
-                    <th class="amount" style="width: 30%;">Amount (INR)</th>
-                </tr>
-                <tr>
-                    <td style="width: 70%;">Base Professional Fee (${itr})</td>
-                    <td class="amount">${baseFee}</td>
-                </tr>
-                <tr>
-                    <td>Complexity Loading (Scope & Volume)</td>
-                    <td class="amount">${loadFee}</td>
-                </tr>
-                <tr class="total-row">
-                    <td>Recommended Professional Fee</td>
-                    <td class="amount">${totalFee}</td>
-                </tr>
-            </table>
-            
-            <div class="avoid-break">
-                <div class="disclaimer-title">Disclaimer:</div>
-                <div class="disclaimer-text">
-                    <p style="margin: 0 0 8px 0;">All applicable statutory dues, taxes, and late filing penalties shall be borne and paid directly by the client.</p>
-                    <p style="margin: 0 0 8px 0;">The above professional fees are indicative and based on the information currently available. Final fees may increase depending upon:</p>
-                    <ul>
-                        <li>Volume of transactions</li>
-                        <li>Capital gain calculations</li>
-                        <li>Number of Demat accounts</li>
-                        <li>Foreign asset reporting</li>
-                        <li>GST reconciliation</li>
-                        <li>Notices and assessments</li>
-                        <li>Revised/Defective returns</li>
-                        <li>Additional advisory work</li>
-                    </ul>
-                    <p style="margin: 0;">Any increase shall be communicated before commencement of additional work.</p>
-                </div>
-            </div>
-
-            <div class="pdf-footer avoid-break">
-                <div>Generated By: <strong>DAIS Internal Fee Tool</strong></div>
-                <div>Handled By: <strong>${document.getElementById('pdf-staff').textContent || 'N/A'}</strong></div>
-            </div>
+            ${templateContent}
         </body>
     </html>
     `;
 
-    // WEB HOSTING FIX: useCORS: true is enabled here
+    // 3. Pass the string directly to html2pdf (useCORS: true added for GitHub logo hosting)
     const opt = {
-      margin:       0.4,
-      filename: `DAIS_Fee_Quotation_${clientName.replace(/\s+/g,'_')}_${ay.replace(/\s+/g,'')}_${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}.pdf`,
+      margin:       0.5,
+      filename: \`DAIS_Fee_Quotation_\${clientName.replace(/\\s+/g,'_')}_\${(document.getElementById('ay').value||'AY').replace(/\\s+/g,'')}_\${new Date().getFullYear()}\${String(new Date().getMonth()+1).padStart(2,'0')}\${String(new Date().getDate()).padStart(2,'0')}.pdf\`,
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true },
-      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
-      pagebreak:    { mode: ['css', 'legacy'] } 
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
     };
     
     html2pdf().set(opt).from(htmlString).save();
