@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DAIS Internal Fee Tool V3.11</title>
-<!-- PDF Generation Library -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0}
@@ -122,7 +121,6 @@ pre{white-space:pre-wrap;background:#eef6ff;padding:15px;border-radius:8px; font
 
 </div>
 
-<!-- Hidden Data Binding Template -->
 <div id="pdf-template">
     <span id="pdf-date"></span>
     <span id="pdf-client"></span>
@@ -252,119 +250,131 @@ function downloadPDF() {
     const baseFee = document.getElementById('pdf-base').textContent;
     const loadFee = document.getElementById('pdf-load').textContent;
     const totalFee = document.getElementById('pdf-total').textContent;
-    const incomesHTML = document.getElementById('pdf-incomes').innerHTML || '<p style="font-size:13px; color:#555; margin-left: 20px;">Standard Salary/Income Evaluation</p>';
+    const incomesHTML = document.getElementById('pdf-incomes').innerHTML || '<p style="font-size:13px; color:#555; margin-left: 20px;">None Selected</p>';
     const demat = document.getElementById('pdf-demat').textContent;
     const shareTxn = document.getElementById('pdf-shareTxn').textContent;
     const propTxn = document.getElementById('pdf-propTxn').textContent;
 
+    // RESTORED: Your original tabular layout with new branding!
     const htmlString = `
     <html>
         <head>
             <style>
-                body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #222; padding: 40px 50px; background: #fff; line-height: 1.6; }
+                body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; padding: 40px; background: #fff; }
                 
+                /* Prevent blank pages */
                 .avoid-break { page-break-inside: avoid; break-inside: avoid; }
                 
-                .letterhead { text-align: center; border-bottom: 3px solid #0b2f57; position: relative; padding-bottom: 20px; margin-bottom: 30px; }
-                .letterhead::after { content: ''; position: absolute; bottom: -6px; left: 0; width: 100%; height: 2px; background-color: #FFC000; }
+                /* Premium Branding Header */
+                .pdf-header { text-align: center; border-bottom: 3px solid #0b2f57; position: relative; padding-bottom: 15px; margin-bottom: 25px; }
+                .pdf-header::after { content: ''; position: absolute; bottom: -6px; left: 0; width: 100%; height: 2px; background-color: #FFC000; }
+                .firm-logo { max-height: 80px; margin-bottom: 10px; }
+                .pdf-header h1 { color: #0b2f57; margin: 0; font-size: 26px; text-transform: uppercase; letter-spacing: 1px;}
+                .pdf-header p { margin: 5px 0 0 0; color: #555; font-size: 14px; font-weight: bold; text-transform: uppercase;}
                 
-                .firm-logo { max-height: 90px; margin-bottom: 15px; }
-
-                .letterhead h1 { color: #0b2f57; margin: 0; font-size: 28px; letter-spacing: 1px; }
-                .letterhead p { margin: 5px 0 0 0; color: #555; font-size: 12px; font-weight: bold; }
+                .pdf-section { margin-bottom: 20px; }
+                .section-title { color: #0b2f57; border-bottom: 2px solid #FFC000; padding-bottom: 5px; margin-bottom: 10px; font-size: 16px; font-weight: bold; }
                 
-                .date-ref { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 30px; font-weight: bold; }
+                /* Info Table */
+                .pdf-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                .pdf-table th, .pdf-table td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
+                .pdf-table th { background-color: #fdfaf0; color: #0b2f57; width: 25%; font-weight: bold; }
+                .pdf-table td { width: 25%; }
                 
-                .subject { background: #fdfaf0; padding: 12px; border-left: 5px solid #FFC000; font-weight: bold; margin-bottom: 25px; font-size: 14px; color: #0b2f57; }
+                /* Fee Table */
+                .pdf-fee-table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #ddd; }
+                .pdf-fee-table th, .pdf-fee-table td { padding: 12px; font-size: 15px; border-bottom: 1px solid #eee; text-align: left;}
+                .pdf-fee-table th { background-color: #0b2f57; color: white; }
+                .pdf-fee-table .amount { text-align: right; }
+                .total-row { font-weight: bold; color: #0b2f57; font-size: 18px; border-top: 2px solid #0b2f57; border-bottom: 2px solid #0b2f57; background: #fdfaf0;}
                 
-                .greeting { margin-bottom: 20px; font-size: 14px; }
+                /* Disclaimer */
+                .disclaimer-title { font-size: 13px; font-weight: bold; margin-top: 20px; color: #0b2f57; }
+                .disclaimer-text { font-size: 12px; margin-top: 5px; color: #555; line-height: 1.5; text-align: justify; }
+                .disclaimer-text ul { margin: 5px 0 8px 0; padding-left: 20px; }
                 
-                .section-title { color: #0b2f57; font-size: 16px; font-weight: bold; border-bottom: 2px solid #FFC000; padding-bottom: 5px; margin: 25px 0 15px 0; }
-                .content-text { font-size: 13px; color: #333; margin-bottom: 15px; }
-                
-                .dynamic-list { margin: 10px 0 10px 20px; padding: 0; font-size: 13px; }
-                .dynamic-list li { margin-bottom: 5px; }
-                
-                .fee-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; border: 1px solid #ddd; }
-                .fee-table th, .fee-table td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-                .fee-table th { background-color: #0b2f57; color: #ffffff; font-weight: bold; border-color: #0b2f57;}
-                .fee-table .amount { text-align: right; }
-                .total-row { font-weight: bold; font-size: 16px; color: #0b2f57; background-color: #fdfaf0; }
-                
-                .terms-list { font-size: 11px; color: #555; margin-left: 15px; padding-left: 10px; line-height: 1.5; }
-                .sign-off { margin-top: 50px; font-size: 14px; font-weight: bold; color: #0b2f57;}
-                .signature-space { height: 60px; }
+                /* Footer */
+                .pdf-footer { width: 100%; margin-top: 40px; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 15px; display: flex; justify-content: space-between; }
             </style>
         </head>
         <body>
-            <div class="letterhead avoid-break">
+            <div class="pdf-header avoid-break">
                 <img src="LOGO_WHATAPP.png" alt="Dais Advisors Logo" class="firm-logo">
                 <h1>DAIS ADVISORS PRIVATE LIMITED</h1>
-                <p>Kota, Rajasthan | Professional Tax & Corporate Advisory</p>
-            </div>
-
-            <div class="date-ref">
-                <div>Date: ${new Date().toLocaleDateString('en-IN')}</div>
-                <div>Assessment Year: ${ay}</div>
-            </div>
-
-            <div class="greeting">
-                Dear <strong>${clientName}</strong>,
-            </div>
-
-            <div class="subject avoid-break">
-                Subject: Proposal for Professional Services – Income Tax Return Preparation & Filing
-            </div>
-
-            <div class="content-text">
-                We thank you for giving Dais Advisors the opportunity to assist you with your tax compliances. Based on our preliminary discussion, we are pleased to present our professional fee proposal for the preparation and filing of your Income Tax Return.
-            </div>
-
-            <div class="section-title avoid-break">1. Scope of Work</div>
-            <div class="content-text avoid-break">
-                Our engagement will cover the computation of taxable income, tax liability assessment, and the final filing of <strong>${itr}</strong> based on the following identified parameters:
+                <p>PROFESSIONAL FEE QUOTATION</p>
             </div>
             
-            <div class="avoid-break">
+            <table class="pdf-table avoid-break">
+                <tr>
+                    <th>Date</th><td>${new Date().toLocaleDateString('en-IN')}</td>
+                    <th>Assessment Year</th><td>${ay}</td>
+                </tr>
+                <tr>
+                    <th>Client Name</th><td>${clientName}</td>
+                    <th>Mobile</th><td>${document.getElementById('pdf-mobile').textContent || 'N/A'}</td>
+                </tr>
+                <tr>
+                    <th>Applicable ITR</th><td>${itr}</td>
+                    <th>GST Registered</th><td>${document.getElementById('pdf-gst').textContent}</td>
+                </tr>
+            </table>
+
+            <div class="pdf-section avoid-break">
+                <div class="section-title">Scope of Work & Income Sources</div>
                 ${incomesHTML}
             </div>
             
-            <div class="content-text avoid-break">
-                <strong>Volume Metrics Considered:</strong> Demat Accounts: ${demat} | Share/MF Txns: ${shareTxn} | Prop. Txns: ${propTxn}
+            <div class="pdf-section avoid-break">
+                <div class="section-title">Account Attributes</div>
+                <ul style="font-size: 14px; margin-top: 10px; color: #333; padding-left: 20px;">
+                    <li><strong>Demat Accounts:</strong> ${demat}</li>
+                    <li><strong>Share/MF Transactions:</strong> ${shareTxn}</li>
+                    <li><strong>Properties Transacted:</strong> ${propTxn}</li>
+                    <li><strong>Risk Level Assessment:</strong> ${document.getElementById('pdf-risk').textContent}</li>
+                </ul>
             </div>
 
-            <div class="section-title avoid-break">2. Professional Fees</div>
-            <table class="fee-table avoid-break">
+            <table class="pdf-fee-table avoid-break">
                 <tr>
                     <th>Particulars</th>
                     <th class="amount" style="width: 30%;">Amount (INR)</th>
                 </tr>
                 <tr>
-                    <td>Base Professional Fee (${itr})</td>
+                    <td style="width: 70%;">Base Professional Fee (${itr})</td>
                     <td class="amount">${baseFee}</td>
                 </tr>
                 <tr>
-                    <td>Complexity & Volume Processing Loading</td>
+                    <td>Complexity Loading (Scope & Volume)</td>
                     <td class="amount">${loadFee}</td>
                 </tr>
                 <tr class="total-row">
-                    <td>Total Recommended Fee</td>
+                    <td>Recommended Professional Fee</td>
                     <td class="amount">${totalFee}</td>
                 </tr>
             </table>
+            
+            <div class="avoid-break">
+                <div class="disclaimer-title">Disclaimer:</div>
+                <div class="disclaimer-text">
+                    <p style="margin: 0 0 8px 0;">All applicable statutory dues, taxes, and late filing penalties shall be borne and paid directly by the client.</p>
+                    <p style="margin: 0 0 8px 0;">The above professional fees are indicative and based on the information currently available. Final fees may increase depending upon:</p>
+                    <ul>
+                        <li>Volume of transactions</li>
+                        <li>Capital gain calculations</li>
+                        <li>Number of Demat accounts</li>
+                        <li>Foreign asset reporting</li>
+                        <li>GST reconciliation</li>
+                        <li>Notices and assessments</li>
+                        <li>Revised/Defective returns</li>
+                        <li>Additional advisory work</li>
+                    </ul>
+                    <p style="margin: 0;">Any increase shall be communicated before commencement of additional work.</p>
+                </div>
+            </div>
 
-            <div class="section-title avoid-break">3. Important Terms & Exclusions</div>
-            <ul class="terms-list avoid-break">
-                <li><strong>Accuracy of Data:</strong> The computation will be based strictly on the documents, bank statements, and information provided by you. We do not independently audit this data.</li>
-                <li><strong>Exclusions:</strong> This fee covers filing only. Representation in front of tax authorities, responding to post-filing scrutiny notices (e.g., u/s 143(1)(a), 143(3), or 154), and GST reconciliations are out of scope and will be billed separately if required.</li>
-                <li><strong>Statutory Dues:</strong> All actual tax liabilities, advance tax, late filing fees, and statutory interest must be paid directly by the client prior to filing.</li>
-                <li><strong>Validity:</strong> This quotation is valid based on the current volume of data communicated. Should there be a material increase in transactions discovered during processing, fees may be revised accordingly.</li>
-            </ul>
-
-            <div class="sign-off avoid-break">
-                <p>For Dais Advisors Private Limited,</p>
-                <div class="signature-space"></div>
-                <p>CA Ankit Chaturvedi</p>
+            <div class="pdf-footer avoid-break">
+                <div>Generated By: <strong>DAIS Internal Fee Tool</strong></div>
+                <div>Handled By: <strong>${document.getElementById('pdf-staff').textContent || 'N/A'}</strong></div>
             </div>
         </body>
     </html>
