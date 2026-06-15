@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DAIS Internal Fee Tool V3.16</title>
+<title>DAIS Internal Fee Tool V3.17</title>
 <style>
 body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0}
 .header{background:#0b2f57;color:#fff;padding:18px}
@@ -32,10 +32,73 @@ pre{white-space:pre-wrap;background:#eef6ff;padding:15px;border-radius:8px; font
     .header, .container { display: none !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
 </style>
 </head>
 <body>
-<div class="header"><h1>DAIS Internal Fee Quotation Tool V3.16</h1></div>
+
+<!-- ── PASSKEY OVERLAY ─────────────────────────────────────────────────── -->
+<div id="passkey-overlay" style="
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(11,47,87,0.97); z-index:99999;
+    display:flex; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:14px; padding:40px 36px;
+              width:340px; box-shadow:0 16px 48px rgba(0,0,0,0.4); text-align:center;">
+
+    <!-- Logo placeholder -->
+    <img src="LOGO_WHATAPP.png" alt="DAIS" style="height:56px; margin-bottom:16px;"
+         onerror="this.style.display='none'">
+
+    <div style="color:#0b2f57; font-size:18px; font-weight:bold; margin-bottom:4px;">
+      DAIS Advisors
+    </div>
+    <div style="color:#888; font-size:12px; margin-bottom:24px;">
+      Internal Fee Quotation Tool
+    </div>
+
+    <label style="font-size:12px; font-weight:bold; color:#333;
+                  display:block; text-align:left; margin-bottom:6px;">
+      Enter Access Key
+    </label>
+    <div style="position:relative;">
+      <input id="passkey-input" type="password"
+        placeholder="Enter passkey to continue"
+        style="width:100%; padding:11px 40px 11px 14px; border:1.5px solid #ccc;
+               border-radius:8px; font-size:14px; box-sizing:border-box; outline:none;"
+        onfocus="this.style.borderColor='#0b2f57'"
+        onblur="this.style.borderColor='#ccc'"
+        onkeydown="if(event.key==='Enter') unlockTool()">
+      <!-- Show/hide toggle -->
+      <span onclick="togglePasskey()" style="position:absolute; right:12px; top:50%;
+            transform:translateY(-50%); cursor:pointer; font-size:16px;
+            color:#aaa; user-select:none;" id="eye-icon">👁</span>
+    </div>
+
+    <div id="passkey-error" style="color:#c00; font-size:12px; margin-top:8px;
+                                    display:none; text-align:left;">
+      ❌ Incorrect passkey. Please try again.
+    </div>
+
+    <button onclick="unlockTool()"
+      style="width:100%; margin-top:18px; padding:13px; background:#0b2f57;
+             color:#fff; border:none; border-radius:8px; font-size:14px;
+             font-weight:bold; cursor:pointer; letter-spacing:0.5px;">
+      Unlock Tool
+    </button>
+
+    <div style="margin-top:16px; font-size:11px; color:#bbb;">
+      Authorised users only · DAIS Advisors Pvt. Ltd.
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN TOOL (blurred until unlocked) ─────────────────────────────── -->
+<div id="main-tool" style="filter:blur(6px); pointer-events:none; user-select:none;">
+<div class="header"><h1>DAIS Internal Fee Quotation Tool V3.17</h1></div>
 <div class="container">
 
 <div class="card">
@@ -244,7 +307,62 @@ pre{white-space:pre-wrap;background:#eef6ff;padding:15px;border-radius:8px; font
 
 </div>
 
+</div> <!-- end main-tool -->
+
 <script>
+// ── PASSKEY LOGIC ──────────────────────────────────────────────────────────
+function unlockTool() {
+    const input = document.getElementById('passkey-input').value.trim();
+    const error = document.getElementById('passkey-error');
+
+    // Send key to Apps Script to validate
+    fetch('https://script.google.com/macros/s/AKfycbzfXWWOwgBQMtEWnCXTmRqJjyDZSPvx5QNtpv4N_BwXhEj3-fMqyUJtB1RKrgUa9IsAMA/exec?key=' + encodeURIComponent(input))
+        .then(r => r.json())
+        .then(res => {
+            if (res.status === 'ok') {
+                // Store key in session memory (not in code)
+                window._sessionKey = input;
+                // Remove overlay
+                document.getElementById('passkey-overlay').remove();
+                // Unblur and enable main tool
+                const main = document.getElementById('main-tool');
+                main.style.filter = 'none';
+                main.style.pointerEvents = 'auto';
+                main.style.userSelect = 'auto';
+            } else {
+                error.style.display = 'block';
+                document.getElementById('passkey-input').value = '';
+                document.getElementById('passkey-input').focus();
+                // Shake animation
+                const box = document.getElementById('passkey-input');
+                box.style.borderColor = '#c00';
+                box.style.animation = 'shake 0.3s ease';
+                setTimeout(() => { box.style.animation = ''; }, 300);
+            }
+        })
+        .catch(() => {
+            error.textContent = '⚠ Network error. Check your connection.';
+            error.style.display = 'block';
+        });
+}
+
+function togglePasskey() {
+    const input = document.getElementById('passkey-input');
+    const eye   = document.getElementById('eye-icon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        eye.textContent = '🙈';
+    } else {
+        input.type = 'password';
+        eye.textContent = '👁';
+    }
+}
+
+// Focus passkey input on load
+window.addEventListener('load', function() {
+    document.getElementById('passkey-input').focus();
+});
+
 function calc(){
 const g=id=>document.getElementById(id);
 let itr='ITR-1',base=1000,load=0,risk='LOW';
@@ -825,7 +943,6 @@ function downloadPDF() {
 
 // ── PENDING CASES PANEL ───────────────────────────────────────────────────
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzfXWWOwgBQMtEWnCXTmRqJjyDZSPvx5QNtpv4N_BwXhEj3-fMqyUJtB1RKrgUa9IsAMA/exec';
-const SECRET_KEY = 'Dais@2026';
 
 function showPendingCases() {
     // Build overlay
@@ -884,7 +1001,7 @@ function showPendingCases() {
     });
 
     // Fetch pending cases
-    fetch(`${SCRIPT_URL}?key=${encodeURIComponent(SECRET_KEY)}`)
+    fetch(`${SCRIPT_URL}?key=${encodeURIComponent(window._sessionKey || '')}`)
         .then(r => r.json())
         .then(res => {
             const body = document.getElementById('pending-body');
