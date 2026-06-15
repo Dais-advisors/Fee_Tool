@@ -3,9 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DAIS Internal Fee Tool V3.11</title>
-<!-- PDF Generation Library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<title>DAIS Internal Fee Tool V3.12</title>
 <style>
 body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0}
 .header{background:#0b2f57;color:#fff;padding:18px}
@@ -37,7 +35,7 @@ pre{white-space:pre-wrap;background:#eef6ff;padding:15px;border-radius:8px; font
 </style>
 </head>
 <body>
-<div class="header"><h1>DAIS Internal Fee Quotation Tool V3.11</h1></div>
+<div class="header"><h1>DAIS Internal Fee Quotation Tool V3.12</h1></div>
 <div class="container">
 
 <div class="card">
@@ -414,6 +412,10 @@ g('actions').innerHTML=`
 }
 
 function downloadPDF() {
+    if (typeof html2pdf === 'undefined') {
+        alert('PDF library is still loading. Please wait a moment and try again.');
+        return;
+    }
     const clientName = document.getElementById('clientName').value || 'Client';
 
     // Convert logo to base64 first (avoids CORS/cross-origin issues in html2pdf)
@@ -499,5 +501,10 @@ function downloadPDF() {
         });
     });
 }
+</script>
+
+<!-- PDF library loaded at end of body to never block page rendering -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+  onerror="this.onerror=null;var s=document.createElement('script');s.src='https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';document.head.appendChild(s);">
 </script>
 </body></html>
