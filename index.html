@@ -412,173 +412,292 @@ g('actions').innerHTML=`
 }
 
 function downloadPDF() {
-    if (typeof html2pdf === 'undefined') {
-        alert('PDF library is still loading. Please wait a moment and try again.');
+    if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+        alert('PDF library is still loading. Please try again in a moment.');
         return;
     }
-    const clientName = document.getElementById('clientName').value || 'Client';
+    const { jsPDF } = window.jspdf;
 
-    // ── Collect all data from DOM elements directly ──
-    const data = {
-        client:    document.getElementById('pdf-client').textContent,
-        mobile:    document.getElementById('pdf-mobile').textContent,
-        ay:        document.getElementById('pdf-ay').textContent,
-        date:      document.getElementById('pdf-date').textContent,
-        itr:       document.getElementById('pdf-itr').textContent,
-        gst:       document.getElementById('pdf-gst').textContent,
-        staff:     document.getElementById('pdf-staff').textContent,
-        demat:     document.getElementById('pdf-demat').textContent,
-        shareTxn:  document.getElementById('pdf-shareTxn').textContent,
-        propTxn:   document.getElementById('pdf-propTxn').textContent,
-        risk:      document.getElementById('pdf-risk').textContent,
-        base:      document.getElementById('pdf-base').textContent,
-        load:      document.getElementById('pdf-load').textContent,
-        total:     document.getElementById('pdf-total').textContent,
-        incomesHTML:     document.getElementById('pdf-incomes').innerHTML,
-        complexityHTML:  document.getElementById('pdf-complexity-list').innerHTML,
-        complexityNone:  document.getElementById('pdf-complexity-none').style.display !== 'none',
-        scopeHTML:       document.getElementById('pdf-scope').innerHTML,
+    // ── Pull all data ──────────────────────────────────────────────
+    const d = {
+        client:   document.getElementById('pdf-client').textContent.trim(),
+        mobile:   document.getElementById('pdf-mobile').textContent.trim(),
+        ay:       document.getElementById('pdf-ay').textContent.trim(),
+        date:     document.getElementById('pdf-date').textContent.trim(),
+        itr:      document.getElementById('pdf-itr').textContent.trim(),
+        gst:      document.getElementById('pdf-gst').textContent.trim(),
+        staff:    document.getElementById('pdf-staff').textContent.trim(),
+        demat:    document.getElementById('pdf-demat').textContent.trim(),
+        shareTxn: document.getElementById('pdf-shareTxn').textContent.trim(),
+        propTxn:  document.getElementById('pdf-propTxn').textContent.trim(),
+        risk:     document.getElementById('pdf-risk').textContent.trim(),
+        base:     document.getElementById('pdf-base').textContent.trim(),
+        load:     document.getElementById('pdf-load').textContent.trim(),
+        total:    document.getElementById('pdf-total').textContent.trim(),
     };
 
-    function buildAndDownload(logoSrc) {
-        const logoTag = logoSrc
-            ? `<img src="${logoSrc}" alt="DAIS Advisors" style="max-height:70px; margin-bottom:8px; display:block; margin-left:auto; margin-right:auto;">`
-            : '';
+    // Parse income items from hidden template
+    const incomeEls = document.querySelectorAll('#pdf-incomes li');
+    const incomes = Array.from(incomeEls).map(li => li.textContent.trim());
 
-        const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, sans-serif; color: #333; font-size: 12px; background: #fff; padding: 30px 36px; }
+    // Parse complexity items
+    const complexityEls = document.querySelectorAll('#pdf-complexity-list li');
+    const complexities = Array.from(complexityEls).map(li => li.textContent.trim());
+    const noComplexity = document.getElementById('pdf-complexity-none').style.display !== 'none';
 
-  /* ── Header ── */
-  .hdr { text-align: center; padding-bottom: 12px; margin-bottom: 20px; border-bottom: 3px solid #0b2f57; position: relative; }
-  .hdr::after { content:''; position:absolute; bottom:-5px; left:0; width:100%; height:2px; background:#FFC000; }
-  .hdr h1 { color:#0b2f57; font-size:20px; letter-spacing:1px; text-transform:uppercase; margin-top:6px; }
-  .hdr p  { color:#555; font-size:11px; font-weight:bold; text-transform:uppercase; letter-spacing:2px; margin-top:4px; }
+    // Parse scope items
+    const scopeEls = document.querySelectorAll('#pdf-scope li');
+    const scope = Array.from(scopeEls).map(li => li.textContent.trim());
 
-  /* ── Section title ── */
-  .sec { margin-top:16px; margin-bottom:8px; color:#0b2f57; font-size:11.5px; font-weight:bold;
-         text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid #FFC000; padding-bottom:4px; }
+    // Fee rows
+    const feeRows = [
+        [d.itr + ' Return Preparation & Filing', d.base],
+        ['Additional Loading (Complexity & Scope)', d.load],
+    ];
 
-  /* ── Detail table ── */
-  .dtbl { width:100%; border-collapse:collapse; margin-bottom:4px; }
-  .dtbl th, .dtbl td { border:1px solid #ddd; padding:7px 9px; font-size:11.5px; text-align:left; vertical-align:top; }
-  .dtbl th { background:#fdfaf0; color:#0b2f57; font-weight:bold; width:22%; white-space:nowrap; }
+    // ── jsPDF setup ────────────────────────────────────────────────
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const PW = 210, PH = 297;
+    const ML = 18, MR = 18, MT = 16;
+    const CW = PW - ML - MR;   // content width = 174mm
 
-  /* ── Income groups ── */
-  .igrp h4 { margin:10px 0 4px; color:#0b2f57; font-size:12px; border-bottom:1px solid #eee; padding-bottom:3px; }
-  .igrp ul { margin:0 0 10px 18px; padding:0; font-size:11.5px; color:#333; }
-  .igrp li { margin-bottom:2px; }
+    // ── Colour palette ─────────────────────────────────────────────
+    const NAVY   = [11,  47,  87];   // #0b2f57
+    const GOLD   = [255, 192,  0];   // #FFC000
+    const LGRAY  = [245, 246, 248];  // light row bg
+    const MGRAY  = [160, 160, 160];  // mid gray lines
+    const DGRAY  = [ 80,  80,  80];  // body text
+    const WHITE  = [255, 255, 255];
 
-  /* ── Generic list ── */
-  .glist { margin:4px 0 0 18px; padding:0; font-size:11.5px; color:#333; line-height:1.75; }
-  .glist li { margin-bottom:2px; }
+    let y = MT;  // cursor
 
-  /* ── Fee table ── */
-  .ftbl { width:100%; border-collapse:collapse; border:1px solid #ccc; margin-top:6px; }
-  .ftbl td { padding:9px 13px; font-size:12px; border-bottom:1px solid #eee; }
-  .ftbl .tot { font-weight:bold; color:#0b2f57; font-size:14px;
-               border-top:2px solid #0b2f57; border-bottom:2px solid #0b2f57; background:#fdfaf0; }
-
-  /* ── Disclaimer ── */
-  .disc { font-size:11px; color:#555; line-height:1.6; text-align:justify; }
-  .disc p { margin-bottom:5px; }
-  .disc ul { margin:3px 0 5px 18px; padding:0; }
-  .disc li { margin-bottom:2px; }
-
-  /* ── Footer ── */
-  .ftr { width:100%; margin-top:24px; font-size:11px; color:#666;
-         border-top:1px solid #ccc; padding-top:10px; border-collapse:collapse; }
-  .ftr td { padding:1px 0; }
-
-  /* ── Page break control ── */
-  .nb { page-break-inside:avoid; break-inside:avoid; }
-</style>
-</head>
-<body>
-
-<div class="hdr nb">
-  ${logoTag}
-  <h1>DAIS Advisors Private Limited</h1>
-  <p>Professional Fee Quotation</p>
-</div>
-
-<div class="sec">Client Details</div>
-<table class="dtbl nb">
-  <tr><th>Client Name</th><td>${data.client}</td><th>Mobile</th><td>${data.mobile}</td></tr>
-  <tr><th>Assessment Year</th><td>${data.ay}</td><th>Date</th><td>${data.date}</td></tr>
-  <tr><th>Applicable ITR</th><td>${data.itr}</td><th>GST Registered</th><td>${data.gst}</td></tr>
-  <tr><th>Handled By</th><td colspan="3">${data.staff}</td></tr>
-</table>
-
-<div class="sec">Income Sources Considered</div>
-<div class="igrp">${data.incomesHTML || '<p style="color:#555;font-size:11.5px;">None Selected</p>'}</div>
-
-<div class="sec">Account Attributes</div>
-<table class="dtbl nb">
-  <tr><th style="width:40%">Demat Accounts</th><td>${data.demat}</td></tr>
-  <tr><th>Share / MF Transactions</th><td>${data.shareTxn}</td></tr>
-  <tr><th>Property Transactions</th><td>${data.propTxn}</td></tr>
-</table>
-
-<div class="sec">Complexity Factors Considered</div>
-<div class="nb">
-  ${data.complexityNone
-    ? '<p style="font-size:11.5px;color:#555;">No complexity loading factors applicable.</p>'
-    : `<ul class="glist">${data.complexityHTML}</ul>`}
-  <p style="font-size:11px;color:#777;margin-top:6px;">Overall Case Complexity: <strong style="color:#0b2f57;">${data.risk}</strong></p>
-</div>
-
-<div class="sec">Scope of Services Included</div>
-<ul class="glist nb">${data.scopeHTML}</ul>
-
-<div class="sec">Fee Computation</div>
-<table class="ftbl nb">
-  <tr><td style="width:70%">Base Professional Fee (${data.itr})</td><td style="text-align:right">${data.base}</td></tr>
-  <tr><td>Complexity Loading (Scope &amp; Volume)</td><td style="text-align:right">${data.load}</td></tr>
-  <tr class="tot"><td>Recommended Professional Fee (Inclusive of all)</td><td style="text-align:right">${data.total}</td></tr>
-</table>
-
-<div class="sec">Disclaimer</div>
-<div class="disc nb">
-  <p>All applicable statutory dues, taxes, and late filing penalties shall be borne and paid directly by the client.</p>
-  <p>The above professional fees are indicative and based on the information currently available. Final fees may increase depending upon:</p>
-  <ul>
-    <li>Volume of transactions and capital gain calculations</li>
-    <li>Number of Demat accounts and investment folios</li>
-    <li>Foreign asset reporting requirements</li>
-    <li>GST reconciliation and compliance complexity</li>
-    <li>Notices, assessments, and departmental proceedings</li>
-    <li>Revised / defective returns and rectification filings</li>
-    <li>Additional advisory, opinion, or representation work</li>
-  </ul>
-  <p>Any increase in fees shall be communicated to the client prior to commencement of additional work. This quotation is valid for 30 days from the date of issuance.</p>
-</div>
-
-<table class="ftr nb">
-  <tr>
-    <td style="text-align:left">Generated By: <strong>DAIS Internal Fee Tool V3.12</strong></td>
-    <td style="text-align:right">For, <strong>DAIS Advisors Private Limited</strong></td>
-  </tr>
-</table>
-
-</body></html>`;
-
-        const opt = {
-            margin: [0.45, 0.5, 0.45, 0.5],
-            filename: `DAIS_Fee_Quotation_${clientName.replace(/\s+/g,'_')}_${(document.getElementById('ay').value||'AY').replace(/\s+/g,'')}_${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}.pdf`,
-            image:       { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
-            jsPDF:       { unit: 'in', format: 'a4', orientation: 'portrait' }
-        };
-
-        html2pdf().set(opt).from(html).save();
+    // ── Helpers ────────────────────────────────────────────────────
+    function setFont(style, size, color) {
+        doc.setFont('helvetica', style);
+        doc.setFontSize(size);
+        doc.setTextColor(...(color || DGRAY));
+    }
+    function line(x1, y1, x2, y2, color, w) {
+        doc.setDrawColor(...(color || MGRAY));
+        doc.setLineWidth(w || 0.25);
+        doc.line(x1, y1, x2, y2);
+    }
+    function rect(x, rx, ry, rw, rh, fillColor) {
+        doc.setFillColor(...fillColor);
+        doc.rect(rx, ry, rw, rh, 'F');
+    }
+    function sectionTitle(label) {
+        y += 6;
+        // Navy left bar
+        doc.setFillColor(...NAVY);
+        doc.rect(ML, y, 2.5, 5, 'F');
+        // Gold accent bar
+        doc.setFillColor(...GOLD);
+        doc.rect(ML, y + 5, 2.5, 0.8, 'F');
+        // Label
+        setFont('bold', 8.5, NAVY);
+        doc.text(label.toUpperCase(), ML + 5, y + 3.8);
+        // Full-width underline
+        line(ML, y + 5.8, ML + CW, y + 5.8, MGRAY, 0.2);
+        y += 10;
+    }
+    function checkRow(text) {
+        setFont('normal', 9, DGRAY);
+        // tick mark in gold
+        doc.setTextColor(...GOLD);
+        doc.text('✓', ML + 2, y);
+        doc.setTextColor(...DGRAY);
+        doc.text(text, ML + 8, y);
+        y += 5.2;
+    }
+    function noteRow(text) {
+        setFont('normal', 8, [120,120,120]);
+        const lines = doc.splitTextToSize(text, CW - 4);
+        doc.text(lines, ML + 2, y);
+        y += lines.length * 4.5;
     }
 
-    // Try to embed logo as base64; fallback to URL if CORS blocks it
+    // ── PAGE HEADER ────────────────────────────────────────────────
+    // Top navy band
+    doc.setFillColor(...NAVY);
+    doc.rect(0, 0, PW, 38, 'F');
+    // Gold accent stripe
+    doc.setFillColor(...GOLD);
+    doc.rect(0, 38, PW, 1.2, 'F');
+
+    // Logo (attempt load, draw placeholder text if unavailable)
+    function drawHeader(logoDataUrl) {
+        if (logoDataUrl) {
+            // Logo on left side of header
+            doc.addImage(logoDataUrl, 'PNG', ML, 5, 22, 22);
+        }
+        // Firm name
+        setFont('bold', 16, WHITE);
+        doc.text('DAIS ADVISORS PRIVATE LIMITED', logoDataUrl ? ML + 26 : ML, 16);
+        setFont('normal', 8.5, GOLD);
+        doc.text('PROFESSIONAL FEE QUOTATION', logoDataUrl ? ML + 26 : ML, 23);
+        // Date top-right
+        setFont('normal', 8, [200, 210, 225]);
+        doc.text('Date: ' + d.date, PW - MR, 16, { align: 'right' });
+        doc.text('Ref: ' + d.ay, PW - MR, 22, { align: 'right' });
+
+        y = 46;
+        continueDoc(logoDataUrl);
+    }
+
+    function continueDoc(logoDataUrl) {
+
+        // ── CLIENT DETAILS ─────────────────────────────────────────
+        sectionTitle('Client Details');
+
+        // 2-column KV grid
+        const kvData = [
+            ['Client Name', d.client,       'Assessment Year', d.ay],
+            ['Mobile',      d.mobile,        'Applicable ITR',  d.itr],
+            ['GST Status',  d.gst === 'Yes' ? 'GST Registered' : 'Not Registered',
+                            'Handled By',   d.staff],
+        ];
+        const col1x = ML, col2x = ML + CW * 0.27, col3x = ML + CW * 0.52, col4x = ML + CW * 0.77;
+        kvData.forEach((row, i) => {
+            const rowY = y + i * 8;
+            // alternating bg
+            if (i % 2 === 0) {
+                doc.setFillColor(...LGRAY);
+                doc.rect(ML, rowY - 4.5, CW, 8, 'F');
+            }
+            setFont('bold', 8, NAVY);
+            doc.text(row[0], col1x + 2, rowY);
+            setFont('normal', 8, DGRAY);
+            doc.text(row[1] || '—', col2x, rowY);
+            setFont('bold', 8, NAVY);
+            doc.text(row[2], col3x + 2, rowY);
+            setFont('normal', 8, DGRAY);
+            doc.text(row[3] || '—', col4x, rowY);
+        });
+        y += kvData.length * 8 + 2;
+
+        // ── RECOMMENDED FEE HIGHLIGHT BOX ──────────────────────────
+        y += 4;
+        doc.setFillColor(...NAVY);
+        doc.roundedRect(ML, y, CW, 14, 2, 2, 'F');
+        doc.setFillColor(...GOLD);
+        doc.roundedRect(ML, y, 4, 14, 2, 2, 'F');
+        doc.rect(ML + 2, y, 2, 14, 'F'); // square off right side of gold bar
+        setFont('normal', 9, [200, 210, 225]);
+        doc.text('Recommended Professional Fee', ML + 9, y + 5.5);
+        setFont('bold', 13, WHITE);
+        doc.text(d.total, ML + 9, y + 11);
+        setFont('normal', 8, GOLD);
+        doc.text('All inclusive  |  Valid 30 days', PW - MR, y + 8.5, { align: 'right' });
+        y += 20;
+
+        // ── INCOME SOURCES ─────────────────────────────────────────
+        if (incomes.length > 0) {
+            sectionTitle('Income Sources Considered');
+            incomes.forEach(item => checkRow(item));
+        }
+
+        // ── COMPLEXITY FACTORS ─────────────────────────────────────
+        sectionTitle('Complexity Factors Considered');
+        if (noComplexity || complexities.length === 0) {
+            setFont('normal', 8.5, [130,130,130]);
+            doc.text('No complexity loading factors applicable.', ML + 2, y);
+            y += 5.5;
+        } else {
+            complexities.forEach(item => checkRow(item));
+        }
+        setFont('bold', 8, NAVY);
+        doc.text('Overall Case Complexity:', ML + 2, y);
+        setFont('bold', 8.5, d.risk === 'HIGH' ? [180,30,30] : d.risk === 'MODERATE' ? [180,100,0] : [0,130,60]);
+        doc.text(d.risk, ML + 46, y);
+        y += 7;
+
+        // ── FEE COMPUTATION TABLE ──────────────────────────────────
+        sectionTitle('Fee Computation');
+
+        // Header row
+        doc.setFillColor(...NAVY);
+        doc.rect(ML, y - 1, CW, 8, 'F');
+        setFont('bold', 8.5, WHITE);
+        doc.text('Particulars', ML + 3, y + 4);
+        doc.text('Amount', ML + CW - 3, y + 4, { align: 'right' });
+        y += 8;
+
+        // Data rows
+        feeRows.forEach((row, i) => {
+            if (i % 2 === 0) {
+                doc.setFillColor(...LGRAY);
+                doc.rect(ML, y - 1, CW, 8, 'F');
+            }
+            setFont('normal', 8.5, DGRAY);
+            doc.text(row[0], ML + 3, y + 4);
+            doc.text(row[1], ML + CW - 3, y + 4, { align: 'right' });
+            y += 8;
+        });
+
+        // Total row
+        doc.setFillColor(...GOLD);
+        doc.rect(ML, y - 1, CW, 9, 'F');
+        setFont('bold', 9.5, NAVY);
+        doc.text('Total Recommended Professional Fee', ML + 3, y + 5);
+        doc.text(d.total, ML + CW - 3, y + 5, { align: 'right' });
+        y += 13;
+
+        // ── SCOPE OF SERVICES ──────────────────────────────────────
+        if (scope.length > 0) {
+            sectionTitle('Scope of Services');
+            scope.forEach(item => {
+                const lines = doc.splitTextToSize(item, CW - 12);
+                doc.setTextColor(...GOLD);
+                setFont('normal', 9, GOLD);
+                doc.text('✓', ML + 2, y);
+                setFont('normal', 8.5, DGRAY);
+                doc.text(lines, ML + 8, y);
+                y += lines.length * 5;
+            });
+        }
+
+        // ── IMPORTANT NOTE ─────────────────────────────────────────
+        y += 4;
+        doc.setFillColor(252, 249, 235);
+        doc.setDrawColor(...GOLD);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(ML, y, CW, 22, 1.5, 1.5, 'FD');
+        // gold left accent
+        doc.setFillColor(...GOLD);
+        doc.rect(ML, y, 3, 22, 'F');
+        doc.roundedRect(ML, y, 3, 22, 1, 1, 'F');
+
+        setFont('bold', 8.5, NAVY);
+        doc.text('Important Note', ML + 7, y + 6);
+        setFont('normal', 7.8, [80, 80, 80]);
+        const noteText = 'The above professional fee is indicative and based on information presently available. Final fees may vary based on volume of transactions, number of Demat accounts, foreign asset disclosure, notices/assessments, or additional advisory work. Any increase shall be communicated before commencement of additional work.';
+        const noteLines = doc.splitTextToSize(noteText, CW - 11);
+        doc.text(noteLines, ML + 7, y + 12);
+        y += 26;
+
+        // ── FOOTER ─────────────────────────────────────────────────
+        // Footer band at bottom
+        doc.setFillColor(...NAVY);
+        doc.rect(0, PH - 14, PW, 14, 'F');
+        doc.setFillColor(...GOLD);
+        doc.rect(0, PH - 14, PW, 1, 'F');
+
+        setFont('normal', 7.5, [180, 195, 210]);
+        doc.text('Generated by DAIS Internal Fee Tool', ML, PH - 7);
+        doc.text('DAIS Advisors Private Limited  |  www.daisadvisors.com', PW - MR, PH - 7, { align: 'right' });
+
+        // ── SAVE ───────────────────────────────────────────────────
+        const fn = 'DAIS_Fee_Quotation_' +
+            (d.client || 'Client').replace(/\s+/g,'_') + '_' +
+            (d.ay || 'AY').replace(/\s+/g,'') + '_' +
+            new Date().getFullYear() +
+            String(new Date().getMonth()+1).padStart(2,'0') +
+            String(new Date().getDate()).padStart(2,'0') + '.pdf';
+        doc.save(fn);
+    }
+
+    // Load logo as base64 for reliable embedding
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = function() {
@@ -586,18 +705,16 @@ function downloadPDF() {
             const c = document.createElement('canvas');
             c.width = img.naturalWidth; c.height = img.naturalHeight;
             c.getContext('2d').drawImage(img, 0, 0);
-            buildAndDownload(c.toDataURL('image/png'));
-        } catch(e) {
-            buildAndDownload('LOGO_WHATAPP.png');
-        }
+            drawHeader(c.toDataURL('image/png'));
+        } catch(e) { drawHeader(null); }
     };
-    img.onerror = function() { buildAndDownload('LOGO_WHATAPP.png'); };
+    img.onerror = function() { drawHeader(null); };
     img.src = 'LOGO_WHATAPP.png?' + Date.now();
 }
+
 </script>
 
-<!-- PDF library loaded at end of body to never block page rendering -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
-  onerror="this.onerror=null;var s=document.createElement('script');s.src='https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';document.head.appendChild(s);">
-</script>
+<!-- jsPDF — pure draw-call PDF, no screenshot rendering -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+  onerror="this.onerror=null;var s=document.createElement('script');s.src='https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js';document.head.appendChild(s);"></script>
 </body></html>
