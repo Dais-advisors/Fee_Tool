@@ -418,88 +418,181 @@ function downloadPDF() {
     }
     const clientName = document.getElementById('clientName').value || 'Client';
 
-    // Convert logo to base64 first (avoids CORS/cross-origin issues in html2pdf)
-    function getLogoBase64(callback) {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            canvas.getContext('2d').drawImage(img, 0, 0);
-            try { callback(canvas.toDataURL('image/png')); }
-            catch(e) { callback(null); } // CORS fallback
-        };
-        img.onerror = function() { callback(null); };
-        img.src = 'LOGO_WHATAPP.png?' + Date.now(); // cache-bust
-    }
+    // ── Collect all data from DOM elements directly ──
+    const data = {
+        client:    document.getElementById('pdf-client').textContent,
+        mobile:    document.getElementById('pdf-mobile').textContent,
+        ay:        document.getElementById('pdf-ay').textContent,
+        date:      document.getElementById('pdf-date').textContent,
+        itr:       document.getElementById('pdf-itr').textContent,
+        gst:       document.getElementById('pdf-gst').textContent,
+        staff:     document.getElementById('pdf-staff').textContent,
+        demat:     document.getElementById('pdf-demat').textContent,
+        shareTxn:  document.getElementById('pdf-shareTxn').textContent,
+        propTxn:   document.getElementById('pdf-propTxn').textContent,
+        risk:      document.getElementById('pdf-risk').textContent,
+        base:      document.getElementById('pdf-base').textContent,
+        load:      document.getElementById('pdf-load').textContent,
+        total:     document.getElementById('pdf-total').textContent,
+        incomesHTML:     document.getElementById('pdf-incomes').innerHTML,
+        complexityHTML:  document.getElementById('pdf-complexity-list').innerHTML,
+        complexityNone:  document.getElementById('pdf-complexity-none').style.display !== 'none',
+        scopeHTML:       document.getElementById('pdf-scope').innerHTML,
+    };
 
-    getLogoBase64(function(logoDataUrl) {
-        // Replace logo src with base64 (or hide if failed)
-        const logoEl = document.getElementById('pdf-logo');
-        if (logoDataUrl) {
-            logoEl.src = logoDataUrl;
-        } else {
-            logoEl.style.display = 'none';
-        }
+    function buildAndDownload(logoSrc) {
+        const logoTag = logoSrc
+            ? `<img src="${logoSrc}" alt="DAIS Advisors" style="max-height:70px; margin-bottom:8px; display:block; margin-left:auto; margin-right:auto;">`
+            : '';
 
-        const templateContent = document.getElementById('pdf-template').innerHTML;
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; color: #333; font-size: 12px; background: #fff; padding: 30px 36px; }
 
-        const htmlString = `
-        <html>
-            <head>
-                <style>
-                    * { box-sizing: border-box; }
-                    body { font-family: Arial, sans-serif; color: #333; padding: 32px 40px; background: #fff; font-size: 13px; }
-                    .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+  /* ── Header ── */
+  .hdr { text-align: center; padding-bottom: 12px; margin-bottom: 20px; border-bottom: 3px solid #0b2f57; position: relative; }
+  .hdr::after { content:''; position:absolute; bottom:-5px; left:0; width:100%; height:2px; background:#FFC000; }
+  .hdr h1 { color:#0b2f57; font-size:20px; letter-spacing:1px; text-transform:uppercase; margin-top:6px; }
+  .hdr p  { color:#555; font-size:11px; font-weight:bold; text-transform:uppercase; letter-spacing:2px; margin-top:4px; }
 
-                    /* Header */
-                    .pdf-header { text-align: center; border-bottom: 3px solid #0b2f57; padding-bottom: 15px; margin-bottom: 22px; position: relative; }
-                    .pdf-header::after { content: ''; position: absolute; bottom: -6px; left: 0; width: 100%; height: 2px; background-color: #FFC000; }
-                    .firm-logo { max-height: 72px; margin-bottom: 8px; }
-                    .pdf-header h1 { color: #0b2f57; margin: 4px 0 0 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
-                    .pdf-header p { margin: 4px 0 0 0; color: #555; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+  /* ── Section title ── */
+  .sec { margin-top:16px; margin-bottom:8px; color:#0b2f57; font-size:11.5px; font-weight:bold;
+         text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid #FFC000; padding-bottom:4px; }
 
-                    /* Section titles */
-                    .pdf-sec-title { color: #0b2f57; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #FFC000; padding-bottom: 5px; margin: 18px 0 10px 0; }
+  /* ── Detail table ── */
+  .dtbl { width:100%; border-collapse:collapse; margin-bottom:4px; }
+  .dtbl th, .dtbl td { border:1px solid #ddd; padding:7px 9px; font-size:11.5px; text-align:left; vertical-align:top; }
+  .dtbl th { background:#fdfaf0; color:#0b2f57; font-weight:bold; width:22%; white-space:nowrap; }
 
-                    /* Detail table */
-                    .pdf-section { margin-bottom: 14px; }
-                    .pdf-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-                    .pdf-table th, .pdf-table td { border: 1px solid #ddd; padding: 8px 10px; font-size: 12px; text-align: left; }
-                    .pdf-table th { background-color: #fdfaf0; color: #0b2f57; width: 22%; font-weight: bold; white-space: nowrap; }
+  /* ── Income groups ── */
+  .igrp h4 { margin:10px 0 4px; color:#0b2f57; font-size:12px; border-bottom:1px solid #eee; padding-bottom:3px; }
+  .igrp ul { margin:0 0 10px 18px; padding:0; font-size:11.5px; color:#333; }
+  .igrp li { margin-bottom:2px; }
 
-                    /* Fee table */
-                    .pdf-fee-table { width: 100%; border-collapse: collapse; border: 1px solid #ccc; margin-top: 8px; }
-                    .pdf-fee-table th, .pdf-fee-table td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #eee; text-align: left; }
-                    .pdf-fee-table .total-row { font-weight: bold; color: #0b2f57; font-size: 15px; border-top: 2px solid #0b2f57; border-bottom: 2px solid #0b2f57; background: #fdfaf0; }
+  /* ── Generic list ── */
+  .glist { margin:4px 0 0 18px; padding:0; font-size:11.5px; color:#333; line-height:1.75; }
+  .glist li { margin-bottom:2px; }
 
-                    /* Footer */
-                    .pdf-footer { width: 100%; margin-top: 30px; font-size: 11px; color: #666; border-top: 1px solid #ccc; padding-top: 12px; border-collapse: collapse; }
-                    .pdf-footer td { padding: 2px 0; }
+  /* ── Fee table ── */
+  .ftbl { width:100%; border-collapse:collapse; border:1px solid #ccc; margin-top:6px; }
+  .ftbl td { padding:9px 13px; font-size:12px; border-bottom:1px solid #eee; }
+  .ftbl .tot { font-weight:bold; color:#0b2f57; font-size:14px;
+               border-top:2px solid #0b2f57; border-bottom:2px solid #0b2f57; background:#fdfaf0; }
 
-                    ul { margin: 4px 0 0 0; padding-left: 20px; }
-                    li { margin-bottom: 3px; }
-                </style>
-            </head>
-            <body>
-                ${templateContent}
-            </body>
-        </html>`;
+  /* ── Disclaimer ── */
+  .disc { font-size:11px; color:#555; line-height:1.6; text-align:justify; }
+  .disc p { margin-bottom:5px; }
+  .disc ul { margin:3px 0 5px 18px; padding:0; }
+  .disc li { margin-bottom:2px; }
+
+  /* ── Footer ── */
+  .ftr { width:100%; margin-top:24px; font-size:11px; color:#666;
+         border-top:1px solid #ccc; padding-top:10px; border-collapse:collapse; }
+  .ftr td { padding:1px 0; }
+
+  /* ── Page break control ── */
+  .nb { page-break-inside:avoid; break-inside:avoid; }
+</style>
+</head>
+<body>
+
+<div class="hdr nb">
+  ${logoTag}
+  <h1>DAIS Advisors Private Limited</h1>
+  <p>Professional Fee Quotation</p>
+</div>
+
+<div class="sec">Client Details</div>
+<table class="dtbl nb">
+  <tr><th>Client Name</th><td>${data.client}</td><th>Mobile</th><td>${data.mobile}</td></tr>
+  <tr><th>Assessment Year</th><td>${data.ay}</td><th>Date</th><td>${data.date}</td></tr>
+  <tr><th>Applicable ITR</th><td>${data.itr}</td><th>GST Registered</th><td>${data.gst}</td></tr>
+  <tr><th>Handled By</th><td colspan="3">${data.staff}</td></tr>
+</table>
+
+<div class="sec">Income Sources Considered</div>
+<div class="igrp">${data.incomesHTML || '<p style="color:#555;font-size:11.5px;">None Selected</p>'}</div>
+
+<div class="sec">Account Attributes</div>
+<table class="dtbl nb">
+  <tr><th style="width:40%">Demat Accounts</th><td>${data.demat}</td></tr>
+  <tr><th>Share / MF Transactions</th><td>${data.shareTxn}</td></tr>
+  <tr><th>Property Transactions</th><td>${data.propTxn}</td></tr>
+</table>
+
+<div class="sec">Complexity Factors Considered</div>
+<div class="nb">
+  ${data.complexityNone
+    ? '<p style="font-size:11.5px;color:#555;">No complexity loading factors applicable.</p>'
+    : `<ul class="glist">${data.complexityHTML}</ul>`}
+  <p style="font-size:11px;color:#777;margin-top:6px;">Overall Case Complexity: <strong style="color:#0b2f57;">${data.risk}</strong></p>
+</div>
+
+<div class="sec">Scope of Services Included</div>
+<ul class="glist nb">${data.scopeHTML}</ul>
+
+<div class="sec">Fee Computation</div>
+<table class="ftbl nb">
+  <tr><td style="width:70%">Base Professional Fee (${data.itr})</td><td style="text-align:right">${data.base}</td></tr>
+  <tr><td>Complexity Loading (Scope &amp; Volume)</td><td style="text-align:right">${data.load}</td></tr>
+  <tr class="tot"><td>Recommended Professional Fee (Inclusive of all)</td><td style="text-align:right">${data.total}</td></tr>
+</table>
+
+<div class="sec">Disclaimer</div>
+<div class="disc nb">
+  <p>All applicable statutory dues, taxes, and late filing penalties shall be borne and paid directly by the client.</p>
+  <p>The above professional fees are indicative and based on the information currently available. Final fees may increase depending upon:</p>
+  <ul>
+    <li>Volume of transactions and capital gain calculations</li>
+    <li>Number of Demat accounts and investment folios</li>
+    <li>Foreign asset reporting requirements</li>
+    <li>GST reconciliation and compliance complexity</li>
+    <li>Notices, assessments, and departmental proceedings</li>
+    <li>Revised / defective returns and rectification filings</li>
+    <li>Additional advisory, opinion, or representation work</li>
+  </ul>
+  <p>Any increase in fees shall be communicated to the client prior to commencement of additional work. This quotation is valid for 30 days from the date of issuance.</p>
+</div>
+
+<table class="ftr nb">
+  <tr>
+    <td style="text-align:left">Generated By: <strong>DAIS Internal Fee Tool V3.12</strong></td>
+    <td style="text-align:right">For, <strong>DAIS Advisors Private Limited</strong></td>
+  </tr>
+</table>
+
+</body></html>`;
 
         const opt = {
-            margin: [0.4, 0.5, 0.4, 0.5],
+            margin: [0.45, 0.5, 0.45, 0.5],
             filename: `DAIS_Fee_Quotation_${clientName.replace(/\s+/g,'_')}_${(document.getElementById('ay').value||'AY').replace(/\s+/g,'')}_${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false },
-            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            image:       { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+            jsPDF:       { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
-        html2pdf().set(opt).from(htmlString).save().then(function() {
-            // Restore original logo src after PDF is done
-            if (logoEl) logoEl.src = 'LOGO_WHATAPP.png';
-        });
-    });
+        html2pdf().set(opt).from(html).save();
+    }
+
+    // Try to embed logo as base64; fallback to URL if CORS blocks it
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+        try {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth; c.height = img.naturalHeight;
+            c.getContext('2d').drawImage(img, 0, 0);
+            buildAndDownload(c.toDataURL('image/png'));
+        } catch(e) {
+            buildAndDownload('LOGO_WHATAPP.png');
+        }
+    };
+    img.onerror = function() { buildAndDownload('LOGO_WHATAPP.png'); };
+    img.src = 'LOGO_WHATAPP.png?' + Date.now();
 }
 </script>
 
