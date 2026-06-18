@@ -3,1209 +3,1202 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DAIS Internal Fee Tool V3.17</title>
+<title>DAIS Internal Fee Tool V4.0</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0}
-.header{background:#0b2f57;color:#fff;padding:18px}
-.container{max-width:1200px;margin:auto;padding:20px}
-.card{background:#fff;padding:20px;border-radius:10px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.grid-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px}
-
-/* Two-column layout for incomes */
+* { box-sizing: border-box; }
+body { font-family: Arial, sans-serif; background: #f4f7fb; margin: 0; }
+.header { background: #053D70; color: #fff; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; }
+.header h1 { margin: 0; font-size: 18px; }
+.header .version { font-size: 11px; opacity: 0.6; margin-top: 3px; }
+.container { max-width: 1100px; margin: auto; padding: 20px; }
+.card { background: #fff; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.grid-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 .income-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
 @media (max-width: 768px) { .income-layout { grid-template-columns: 1fr; gap: 20px; } }
-
-.category-title { color: #0b2f57; font-size: 1.1em; font-weight: bold; margin-top: 15px; margin-bottom: 10px; }
-.check-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 0.95em; cursor: pointer; }
-.check-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; margin: 0; }
-
-input[type="text"], select{width:100%; padding:10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;}
-.btn{color:#fff;border:none;padding:12px 18px;border-radius:6px;cursor:pointer; margin-top: 5px; font-weight: bold;}
-pre{white-space:pre-wrap;background:#eef6ff;padding:15px;border-radius:8px; font-family: monospace; font-size: 14px;}
-
-/* Template is kept purely for data binding, never displayed on screen */
+.category-title { color: #053D70; font-size: 1em; font-weight: bold; margin-top: 14px; margin-bottom: 8px; border-bottom: 1px solid #e8f0f8; padding-bottom: 4px; }
+.check-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 0.93em; cursor: pointer; }
+.check-row:hover { color: #053D70; }
+.check-row input[type="checkbox"] { width: 17px; height: 17px; cursor: pointer; margin: 0; accent-color: #053D70; }
+input[type="text"], select { width: 100%; padding: 9px 11px; border: 1.5px solid #dde3ea; border-radius: 6px; font-size: 13px; }
+input[type="text"]:focus, select:focus { outline: none; border-color: #053D70; }
+.btn { color: #fff; border: none; padding: 11px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; }
+.btn:hover { opacity: 0.9; }
+pre { white-space: pre-wrap; background: #eef6ff; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 13px; line-height: 1.6; }
 #pdf-template { display: none; }
+label { font-size: 12px; font-weight: bold; color: #444; display: block; margin-bottom: 5px; }
 
-/* Print Media Query - Simple UI hiding for standard Ctrl+P */
-@media print {
-    body { background: #fff; margin: 0; padding: 0;}
-    .header, .container { display: none !important; }
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-}
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  75% { transform: translateX(6px); }
-}
+/* Passkey overlay */
+#passkey-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5,61,112,0.97); z-index: 99999; display: flex; align-items: center; justify-content: center; }
+.passkey-box { background: #fff; border-radius: 14px; padding: 40px 36px; width: 340px; box-shadow: 0 16px 48px rgba(0,0,0,0.4); text-align: center; }
+.passkey-input-wrap { position: relative; }
+.passkey-input-wrap input { width: 100%; padding: 11px 40px 11px 14px; border: 1.5px solid #ccc; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+.passkey-input-wrap span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 16px; color: #aaa; }
+
+/* Pending cases panel */
+.panel-overlay { position: fixed; top: 0; right: 0; width: 680px; max-width: 100vw; height: 100%; background: #fff; z-index: 9998; box-shadow: -4px 0 24px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
+.panel-header { background: #053D70; color: #fff; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.panel-body { flex: 1; overflow-y: auto; padding: 16px; }
+.panel-close { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 18px; }
+.case-card { border: 1px solid #e8f0f8; border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; position: relative; }
+.case-card.paid { border-color: #d4edda; background: #f8fff9; }
+.case-name { font-weight: 700; font-size: 14px; color: #053D70; }
+.case-meta { font-size: 11px; color: #888; margin-top: 3px; }
+.case-fee { font-size: 16px; font-weight: 700; color: #053D70; margin-top: 6px; }
+.badge-pending { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge-paid { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 16px; }
+.kpi-box { background: #f0f4f8; border-radius: 8px; padding: 12px; text-align: center; }
+.kpi-num { font-size: 22px; font-weight: 700; color: #053D70; }
+.kpi-lbl { font-size: 11px; color: #888; margin-top: 2px; }
+.filter-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.filter-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid #dde3ea; background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; color: #555; }
+.filter-btn.active { background: #053D70; color: #fff; border-color: #053D70; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+/* Billing Dashboard */
+.bill-fullscreen { position:fixed;top:0;left:0;width:100%;height:100%;background:#f4f7fb;z-index:9997;display:flex;flex-direction:column;overflow:hidden; }
+.bill-topbar { background:#053D70;color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
+.bill-topbar h2 { margin:0;font-size:16px; }
+.bill-content { flex:1;overflow-y:auto;padding:20px 24px; }
+.bill-tabs { display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #e8f0f8; }
+.bill-tab { padding:10px 20px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px; }
+.bill-tab.active { color:#053D70;border-bottom-color:#053D70; }
+.bill-tab-content { display:none; }
+.bill-tab-content.active { display:block; }
+.stat-row { display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px; }
+.stat-box { background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);text-align:center; }
+.stat-box .num { font-size:26px;font-weight:700; }
+.stat-box .lbl { font-size:11px;color:#888;margin-top:3px;text-transform:uppercase;letter-spacing:0.5px; }
+.bill-table { width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06); }
+.bill-table th { background:#053D70;color:#fff;padding:10px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px; }
+.bill-table td { padding:10px 12px;border-bottom:1px solid #f0f4f8;vertical-align:middle; }
+.bill-table tr:hover td { background:#f8fafc; }
+.bill-table tr:last-child td { border-bottom:none; }
+.badge-paid { background:#d4edda;color:#155724;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600; }
+.badge-pending { background:#fff3cd;color:#856404;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600; }
+.chart-bar { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
+.chart-bar-label { width:80px;font-size:12px;color:#555;flex-shrink:0; }
+.chart-bar-track { flex:1;background:#e8f0f8;border-radius:4px;height:20px; }
+.chart-bar-fill { height:100%;border-radius:4px;transition:width 0.5s; }
+.chart-bar-num { width:60px;font-size:12px;font-weight:600;color:#053D70;text-align:right;flex-shrink:0; }
 </style>
 </head>
 <body>
 
-<!-- ── PASSKEY OVERLAY ─────────────────────────────────────────────────── -->
-<div id="passkey-overlay" style="
-    position:fixed; top:0; left:0; width:100%; height:100%;
-    background:rgba(11,47,87,0.97); z-index:99999;
-    display:flex; align-items:center; justify-content:center;">
-  <div style="background:#fff; border-radius:14px; padding:40px 36px;
-              width:340px; box-shadow:0 16px 48px rgba(0,0,0,0.4); text-align:center;">
-
-    <!-- Logo placeholder -->
-    <img src="LOGO_WHATAPP.png" alt="DAIS" style="height:56px; margin-bottom:16px;"
-         onerror="this.style.display='none'">
-
-    <div style="color:#0b2f57; font-size:18px; font-weight:bold; margin-bottom:4px;">
-      DAIS Advisors
-    </div>
-    <div style="color:#888; font-size:12px; margin-bottom:24px;">
-      Internal Fee Quotation Tool
-    </div>
-
-    <label style="font-size:12px; font-weight:bold; color:#333;
-                  display:block; text-align:left; margin-bottom:6px;">
-      Enter Access Key
-    </label>
-    <div style="position:relative;">
-      <input id="passkey-input" type="password"
-        placeholder="Enter passkey to continue"
-        style="width:100%; padding:11px 40px 11px 14px; border:1.5px solid #ccc;
-               border-radius:8px; font-size:14px; box-sizing:border-box; outline:none;"
-        onfocus="this.style.borderColor='#0b2f57'"
-        onblur="this.style.borderColor='#ccc'"
+<!-- PASSKEY OVERLAY -->
+<div id="passkey-overlay">
+  <div class="passkey-box">
+    <img src="LOGO_WHATAPP.png" alt="DAIS" style="height:52px;margin-bottom:14px;" onerror="this.style.display='none'">
+    <div style="color:#053D70;font-size:18px;font-weight:bold;margin-bottom:4px;">DAIS Advisors</div>
+    <div style="color:#888;font-size:12px;margin-bottom:22px;">Internal Fee Quotation Tool</div>
+    <label style="text-align:left;font-size:12px;font-weight:bold;color:#333;margin-bottom:6px;">Username</label>
+    <input id="passkey-username" type="text" placeholder="Enter username"
+      style="width:100%;padding:11px 14px;border:1.5px solid #ccc;border-radius:8px;font-size:14px;box-sizing:border-box;margin-bottom:12px;"
+      onfocus="this.style.borderColor='#053D70'" onblur="this.style.borderColor='#ccc'"
+      onkeydown="if(event.key==='Enter') document.getElementById('passkey-input').focus()">
+    <label style="text-align:left;font-size:12px;font-weight:bold;color:#333;margin-bottom:6px;">Password</label>
+    <div class="passkey-input-wrap">
+      <input id="passkey-input" type="password" placeholder="Enter password"
+        onfocus="this.style.borderColor='#053D70'" onblur="this.style.borderColor='#ccc'"
         onkeydown="if(event.key==='Enter') unlockTool()">
-      <!-- Show/hide toggle -->
-      <span onclick="togglePasskey()" style="position:absolute; right:12px; top:50%;
-            transform:translateY(-50%); cursor:pointer; font-size:16px;
-            color:#aaa; user-select:none;" id="eye-icon">👁</span>
+      <span onclick="togglePasskey()" id="eye-icon">👁</span>
     </div>
+    <div id="passkey-error" style="color:#c00;font-size:12px;margin-top:8px;display:none;text-align:left;">❌ Incorrect username or password.</div>
+    <button onclick="unlockTool()" style="width:100%;margin-top:18px;padding:13px;background:#053D70;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;">Unlock Tool</button>
+    <div style="margin-top:14px;font-size:11px;color:#bbb;">Authorised users only · DAIS Advisors Pvt. Ltd.</div>
+  </div>
+</div>
 
-    <div id="passkey-error" style="color:#c00; font-size:12px; margin-top:8px;
-                                    display:none; text-align:left;">
-      ❌ Incorrect passkey. Please try again.
+<!-- MAIN TOOL -->
+<div id="main-tool" style="filter:blur(6px);pointer-events:none;user-select:none;">
+
+<div class="header">
+  <div>
+    <h1>DAIS Internal Fee Quotation Tool</h1>
+    <div class="version">V4.0 — Powered by Supabase</div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- Client Info -->
+<div class="card">
+  <div class="grid-top">
+    <div><label>Client Name</label><input type="text" id="clientName" placeholder="e.g. Ramesh Sharma"></div>
+    <div><label>Mobile</label><input type="text" id="mobile" placeholder="10-digit mobile"></div>
+    <div><label>Handled By</label><input type="text" id="staff" placeholder="Staff name"></div>
+    <div><label>Assessment Year</label><input type="text" id="ay" value="AY 2026-27"></div>
+    <div><label>GST Status</label><select id="gst"><option>No GST</option><option>GST Registered</option></select></div>
+  </div>
+</div>
+
+<!-- Income Sources -->
+<div class="card">
+  <h2 style="color:#053D70;margin-top:0;margin-bottom:16px;">Income Sources</h2>
+  <div class="income-layout">
+    <div>
+      <div class="category-title">Salary & Property</div>
+      <label class="check-row"><span>Salary / Pension</span><input type="checkbox" id="salary"></label>
+      <label class="check-row"><span>One House Property</span><input type="checkbox" id="onehp"></label>
+      <label class="check-row"><span>Multiple House Properties</span><input type="checkbox" id="multihp"></label>
+      <div class="category-title">Other Sources</div>
+      <label class="check-row"><span>Interest Income</span><input type="checkbox" id="interest"></label>
+      <label class="check-row"><span>Dividend Income</span><input type="checkbox" id="dividend"></label>
+      <label class="check-row"><span>Family Pension</span><input type="checkbox" id="familypension"></label>
+      <div class="category-title">Capital Gains</div>
+      <label class="check-row"><span>Mutual Funds</span><input type="checkbox" id="mf"></label>
+      <label class="check-row"><span>Shares</span><input type="checkbox" id="shares"></label>
+      <label class="check-row"><span>Property Sale</span><input type="checkbox" id="property"></label>
     </div>
-
-    <button onclick="unlockTool()"
-      style="width:100%; margin-top:18px; padding:13px; background:#0b2f57;
-             color:#fff; border:none; border-radius:8px; font-size:14px;
-             font-weight:bold; cursor:pointer; letter-spacing:0.5px;">
-      Unlock Tool
-    </button>
-
-    <div style="margin-top:16px; font-size:11px; color:#bbb;">
-      Authorised users only · DAIS Advisors Pvt. Ltd.
+    <div>
+      <div class="category-title">Business & Profession</div>
+      <label class="check-row"><span>Business Income</span><input type="checkbox" id="business"></label>
+      <label class="check-row"><span>Professional Income</span><input type="checkbox" id="professional"></label>
+      <label class="check-row"><span>Presumptive 44AD</span><input type="checkbox" id="ad"></label>
+      <label class="check-row"><span>Presumptive 44ADA</span><input type="checkbox" id="ada"></label>
+      <div class="category-title">Special Cases & Compliance</div>
+      <label class="check-row"><span>F&O Trading</span><input type="checkbox" id="fo"></label>
+      <label class="check-row"><span>Intraday Trading</span><input type="checkbox" id="intraday"></label>
+      <label class="check-row"><span>Foreign Assets</span><input type="checkbox" id="foreignasset"></label>
+      <label class="check-row"><span>Foreign Income / NRI / DTAA</span><input type="checkbox" id="foreignincome"></label>
+      <label class="check-row"><span>ESOP</span><input type="checkbox" id="esop"></label>
+      <label class="check-row"><span>Crypto</span><input type="checkbox" id="crypto"></label>
+      <label class="check-row"><span>Tax Notice</span><input type="checkbox" id="notice"></label>
+      <label class="check-row"><span>Revised Return</span><input type="checkbox" id="revised"></label>
     </div>
   </div>
 </div>
 
-<!-- ── MAIN TOOL (blurred until unlocked) ─────────────────────────────── -->
-<div id="main-tool" style="filter:blur(6px); pointer-events:none; user-select:none;">
-<div class="header"><h1>DAIS Internal Fee Quotation Tool V3.17</h1></div>
-<div class="container">
-
+<!-- Complexity -->
 <div class="card">
-<div class="grid-top">
-<input type="text" id="clientName" placeholder="Client Name">
-<input type="text" id="mobile" placeholder="Mobile">
-<input type="text" id="staff" placeholder="Handled By">
-<input type="text" id="ay" value="AY 2026-27">
-<select id="gst"><option>No GST</option><option>GST Registered</option></select>
-</div>
-</div>
-
-<div class="card">
-<h2 style="color: #0b2f57; margin-top: 0; margin-bottom: 20px;">Income Sources</h2>
-
-<div class="income-layout">
-    <!-- Left Column -->
-    <div class="col">
-        <div class="category-title">Salary & Property</div>
-        <label class="check-row"><span>Salary / Pension</span> <input type="checkbox" id="salary"></label>
-        <label class="check-row"><span>One House Property</span> <input type="checkbox" id="onehp"></label>
-        <label class="check-row"><span>Multiple House Properties</span> <input type="checkbox" id="multihp"></label>
-
-        <div class="category-title">Other Sources</div>
-        <label class="check-row"><span>Interest Income</span> <input type="checkbox" id="interest"></label>
-        <label class="check-row"><span>Dividend Income</span> <input type="checkbox" id="dividend"></label>
-        <label class="check-row"><span>Family Pension</span> <input type="checkbox" id="familypension"></label>
-
-        <div class="category-title">Capital Gains</div>
-        <label class="check-row"><span>Mutual Funds</span> <input type="checkbox" id="mf"></label>
-        <label class="check-row"><span>Shares</span> <input type="checkbox" id="shares"></label>
-        <label class="check-row"><span>Property Sale</span> <input type="checkbox" id="property"></label>
+  <div class="grid-top" style="align-items:end;">
+    <div>
+      <label>Demat Accounts</label>
+      <select id="demat"><option>None</option><option>1</option><option>2-3</option><option>4+</option></select>
     </div>
-
-    <!-- Right Column -->
-    <div class="col">
-        <div class="category-title">Business & Profession</div>
-        <label class="check-row"><span>Business Income</span> <input type="checkbox" id="business"></label>
-        <label class="check-row"><span>Professional Income</span> <input type="checkbox" id="professional"></label>
-        <label class="check-row"><span>Presumptive 44AD</span> <input type="checkbox" id="ad"></label>
-        <label class="check-row"><span>Presumptive 44ADA</span> <input type="checkbox" id="ada"></label>
-
-        <div class="category-title">Special Cases & Compliance</div>
-        <label class="check-row"><span>F&O Trading</span> <input type="checkbox" id="fo"></label>
-        <label class="check-row"><span>Intraday Trading</span> <input type="checkbox" id="intraday"></label>
-        <label class="check-row"><span>Foreign Assets</span> <input type="checkbox" id="foreignasset"></label>
-        <label class="check-row"><span>Foreign Income / NRI / DTAA</span> <input type="checkbox" id="foreignincome"></label>
-        <label class="check-row"><span>ESOP</span> <input type="checkbox" id="esop"></label>
-        <label class="check-row"><span>Crypto</span> <input type="checkbox" id="crypto"></label>
-        <label class="check-row"><span>Tax Notice</span> <input type="checkbox" id="notice"></label>
-        <label class="check-row"><span>Revised Return</span> <input type="checkbox" id="revised"></label>
+    <div>
+      <label>Share/MF Transactions</label>
+      <select id="shareTxn"><option>None</option><option>1-50</option><option>51-500</option><option>500+</option></select>
     </div>
-</div>
+    <div>
+      <label>Properties Transacted</label>
+      <select id="propTxn"><option>None</option><option>1</option><option>2-3</option><option>4+</option></select>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:16px;">
+    <button class="btn" style="background:#053D70;flex:1;font-size:1em;" onclick="calc()">⚡ Generate Assessment</button>
+    <button class="btn" style="background:#FFC000;color:#053D70;width:160px;" onclick="showPendingCases()">📋 Pending Cases</button>
+    <button class="btn" id="billing-btn" style="background:#2e7d32;width:160px;display:none;" onclick="showBillingDashboard()">💰 Billing</button>
+  </div>
 </div>
 
+<!-- Output -->
 <div class="card">
-<div class="grid-top" style="align-items: center; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-<div>
-  <label style="font-weight:bold; display:block; margin-bottom:5px;">Demat Accounts</label>
-  <select id="demat">
-  <option>None</option><option>1</option><option>2-3</option><option>4+</option>
-  </select>
-</div>
-<div>
-  <label style="font-weight:bold; display:block; margin-bottom:5px;">Share/MF Transactions</label>
-  <select id="shareTxn">
-  <option>None</option><option>1-50</option><option>51-500</option><option>500+</option>
-  </select>
-</div>
-<div>
-  <label style="font-weight:bold; display:block; margin-bottom:5px;">Properties Transacted</label>
-  <select id="propTxn">
-  <option>None</option><option>1</option><option>2-3</option><option>4+</option>
-  </select>
-</div>
-</div><br>
-<div style="display:flex; gap:10px;">
-  <button class="btn" style="background:#0b2f57; flex:1; font-size:1.1em;" onclick="calc()">Generate Assessment</button>
-  <button class="btn" style="background:#5c3d8f; width:200px; font-size:0.95em;" onclick="showPendingCases()">📋 Pending Cases</button>
-</div>
+  <pre id="out">Generate Assessment to view result.</pre>
+  <div id="actions" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;"></div>
 </div>
 
-<div class="card">
-<pre id="out">Generate Assessment to view result.</pre>
-<div id="actions" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
-</div>
+</div><!-- end container -->
+</div><!-- end main-tool -->
 
-</div>
-
-<!-- Hidden Data Binding Template -->
+<!-- PDF Template (hidden) -->
 <div id="pdf-template">
-
-    <!-- HEADER -->
-    <div class="pdf-header avoid-break">
-        <img id="pdf-logo" src="LOGO_WHATAPP.png" alt="DAIS Advisors Logo" class="firm-logo">
-        <h1>DAIS ADVISORS PRIVATE LIMITED</h1>
-        <p>PROFESSIONAL FEE QUOTATION</p>
-    </div>
-
-    <!-- SECTION 1: CLIENT DETAILS -->
-    <div class="pdf-section avoid-break">
-        <h3 class="pdf-sec-title">Client Details</h3>
-        <table class="pdf-table">
-            <tr>
-                <th>Client Name</th><td id="pdf-client"></td>
-                <th>Mobile</th><td id="pdf-mobile"></td>
-            </tr>
-            <tr>
-                <th>Assessment Year</th><td id="pdf-ay"></td>
-                <th>Date</th><td id="pdf-date"></td>
-            </tr>
-            <tr>
-                <th>Applicable ITR</th><td id="pdf-itr"></td>
-                <th>GST Registered</th><td id="pdf-gst"></td>
-            </tr>
-            <tr>
-                <th>Handled By</th><td id="pdf-staff" colspan="3"></td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- SECTION 2: INCOME SOURCES CONSIDERED -->
-    <div class="pdf-section avoid-break">
-        <h3 class="pdf-sec-title">Income Sources Considered</h3>
-        <div id="pdf-incomes"></div>
-    </div>
-
-    <!-- SECTION 3: ACCOUNT ATTRIBUTES -->
-    <div class="pdf-section avoid-break">
-        <h3 class="pdf-sec-title">Account Attributes</h3>
-        <table class="pdf-table">
-            <tr>
-                <th style="width:40%">Demat Accounts</th>
-                <td id="pdf-demat"></td>
-            </tr>
-            <tr>
-                <th>Share / MF Transactions</th>
-                <td id="pdf-shareTxn"></td>
-            </tr>
-            <tr>
-                <th>Property Transactions</th>
-                <td id="pdf-propTxn"></td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- SECTION 4: COMPLEXITY FACTORS -->
-    <div class="pdf-section avoid-break">
-        <h3 class="pdf-sec-title">Complexity Factors Considered</h3>
-        <div id="pdf-complexity-none" style="font-size:13px; color:#555; display:none;">No complexity loading factors applicable.</div>
-        <ul id="pdf-complexity-list" style="font-size:13px; color:#333; margin:8px 0 0 0; padding-left:20px; line-height:1.9;"></ul>
-        <p style="font-size:12px; color:#777; margin:8px 0 0 0;">Overall Case Complexity: <strong id="pdf-risk" style="color:#0b2f57;"></strong></p>
-    </div>
-
-    <!-- SECTION 5: SCOPE OF SERVICES -->
-    <div class="pdf-section avoid-break">
-        <h3 class="pdf-sec-title">Scope of Services Included</h3>
-        <ul id="pdf-scope" style="font-size:13px; color:#333; margin:8px 0 0 0; padding-left:20px; line-height:1.9;"></ul>
-    </div>
-
-    <!-- SECTION 6: FEE COMPUTATION -->
-    <div class="pdf-section avoid-break">
-        <h3 class="pdf-sec-title">Fee Computation</h3>
-        <table class="pdf-fee-table">
-            <tr>
-                <td style="width:70%;">Base Professional Fee (<span id="pdf-itr-fee-label"></span>)</td>
-                <td style="width:30%; text-align:right;" id="pdf-base"></td>
-            </tr>
-            <tr>
-                <td>Complexity Loading (Scope &amp; Volume)</td>
-                <td style="text-align:right;" id="pdf-load"></td>
-            </tr>
-            <tr class="total-row">
-                <td>Recommended Professional Fee (Inclusive of all)</td>
-                <td style="text-align:right;" id="pdf-total"></td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- SECTION 7: DISCLAIMER -->
-    <div class="pdf-section avoid-break">
-        <h3 class="pdf-sec-title">Disclaimer</h3>
-        <div style="font-size:12px; color:#555; line-height:1.6; text-align:justify;">
-            <p style="margin:0 0 6px 0;">All applicable statutory dues, taxes, and late filing penalties shall be borne and paid directly by the client.</p>
-            <p style="margin:0 0 6px 0;">The above professional fees are indicative and based on the information currently available. Final fees may increase depending upon:</p>
-            <ul style="margin:4px 0 6px 0; padding-left:20px;">
-                <li>Volume of transactions and capital gain calculations</li>
-                <li>Number of Demat accounts and investment folios</li>
-                <li>Foreign asset reporting requirements</li>
-                <li>GST reconciliation and compliance complexity</li>
-                <li>Notices, assessments, and departmental proceedings</li>
-                <li>Revised / defective returns and rectification filings</li>
-                <li>Additional advisory, opinion, or representation work</li>
-            </ul>
-            <p style="margin:0;">Any increase in fees shall be communicated to the client prior to commencement of additional work. This quotation is valid for 30 days from the date of issuance.</p>
-        </div>
-    </div>
-
-    <!-- FOOTER -->
-    <table class="pdf-footer avoid-break">
-        <tr>
-            <td style="text-align:left;">Generated By: <strong>DAIS Internal Fee Tool</strong></td>
-            <td style="text-align:right;">For, <strong>DAIS Advisors Private Limited</strong></td>
-        </tr>
-    </table>
-
+  <div id="pdf-header"></div>
+  <table id="pdf-client-table"></table>
+  <div id="pdf-incomes"></div>
+  <div id="pdf-complexity-none"></div>
+  <ul id="pdf-complexity-list"></ul>
+  <p><span id="pdf-risk"></span></p>
+  <ul id="pdf-scope"></ul>
+  <div id="pdf-base"></div>
+  <div id="pdf-load"></div>
+  <div id="pdf-total"></div>
+  <span id="pdf-itr-fee-label"></span>
+  <span id="pdf-itr"></span>
+  <span id="pdf-ay"></span>
+  <span id="pdf-client"></span>
+  <span id="pdf-mobile"></span>
+  <span id="pdf-date"></span>
+  <span id="pdf-staff"></span>
+  <span id="pdf-gst"></span>
+  <span id="pdf-demat"></span>
+  <span id="pdf-shareTxn"></span>
+  <span id="pdf-propTxn"></span>
 </div>
-
-</div> <!-- end main-tool -->
 
 <script>
-// ── PASSKEY LOGIC ──────────────────────────────────────────────────────────
-function unlockTool() {
-    const input = document.getElementById('passkey-input').value.trim();
-    const error = document.getElementById('passkey-error');
+// ── CONFIGURATION ──────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://pkbyrswrktvzrxyywqnk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Q89ZQNGCEeA60QfAgNXcIw_eu73bIZ4';
+const USERS = [
+  { username: 'Team',  password: 'Dais@2026'   },
+  { username: 'Ankit', password: 'Shritha@321'  },
+];
+const WA_NUMBER    = '918529081017';
 
-    // Send key to Apps Script to validate
-    fetch('https://script.google.com/macros/s/AKfycbzfXWWOwgBQMtEWnCXTmRqJjyDZSPvx5QNtpv4N_BwXhEj3-fMqyUJtB1RKrgUa9IsAMA/exec?key=' + encodeURIComponent(input))
-        .then(r => r.json())
-        .then(res => {
-            if (res.status === 'ok') {
-                // Store key in session memory (not in code)
-                window._sessionKey = input;
-                // Remove overlay
-                document.getElementById('passkey-overlay').remove();
-                // Unblur and enable main tool
-                const main = document.getElementById('main-tool');
-                main.style.filter = 'none';
-                main.style.pointerEvents = 'auto';
-                main.style.userSelect = 'auto';
-            } else {
-                error.style.display = 'block';
-                document.getElementById('passkey-input').value = '';
-                document.getElementById('passkey-input').focus();
-                // Shake animation
-                const box = document.getElementById('passkey-input');
-                box.style.borderColor = '#c00';
-                box.style.animation = 'shake 0.3s ease';
-                setTimeout(() => { box.style.animation = ''; }, 300);
-            }
-        })
-        .catch(() => {
-            error.textContent = '⚠ Network error. Check your connection.';
-            error.style.display = 'block';
-        });
+// ── SUPABASE HELPERS ───────────────────────────────────────────────────────
+const sbHeaders = () => ({
+  'Content-Type':  'application/json',
+  'apikey':        SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY,
+  'Prefer':        'return=representation'
+});
+
+async function sbInsert(data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/fee_quotations`, {
+    method:  'POST',
+    headers: sbHeaders(),
+    body:    JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function sbUpdate(rowId, data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/fee_quotations?row_id=eq.${encodeURIComponent(rowId)}`, {
+    method:  'PATCH',
+    headers: sbHeaders(),
+    body:    JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function sbSelect(filter = '') {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/fee_quotations?select=*&order=created_at.desc${filter}`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+// ── PASSKEY ────────────────────────────────────────────────────────────────
+function unlockTool() {
+  const username = document.getElementById('passkey-username').value.trim();
+  const password = document.getElementById('passkey-input').value.trim();
+  const error    = document.getElementById('passkey-error');
+  const matched  = USERS.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+  if (matched) {
+    window._sessionUser = matched.username;
+    document.getElementById('passkey-overlay').remove();
+    const main = document.getElementById('main-tool');
+    main.style.filter = 'none';
+    main.style.pointerEvents = 'auto';
+    main.style.userSelect = 'auto';
+    // Pre-fill staff field with username
+    const staffEl = document.getElementById('staff');
+    if(staffEl && !staffEl.value) staffEl.value = matched.username;
+    // Show billing button only for Ankit
+    if(matched.username.toLowerCase() === 'ankit') {
+      const billingBtn = document.getElementById('billing-btn');
+      if(billingBtn) billingBtn.style.display = 'block';
+    }
+  } else {
+    error.style.display = 'block';
+    document.getElementById('passkey-input').value = '';
+    document.getElementById('passkey-input').focus();
+    document.getElementById('passkey-input').style.borderColor = '#c00';
+    document.getElementById('passkey-input').style.animation = 'shake 0.3s ease';
+    setTimeout(() => {
+      document.getElementById('passkey-input').style.animation = '';
+      document.getElementById('passkey-input').style.borderColor = '#ccc';
+    }, 400);
+  }
 }
 
 function togglePasskey() {
-    const input = document.getElementById('passkey-input');
-    const eye   = document.getElementById('eye-icon');
-    if (input.type === 'password') {
-        input.type = 'text';
-        eye.textContent = '🙈';
-    } else {
-        input.type = 'password';
-        eye.textContent = '👁';
-    }
+  const input = document.getElementById('passkey-input');
+  const eye   = document.getElementById('eye-icon');
+  input.type  = input.type === 'password' ? 'text' : 'password';
+  eye.textContent = input.type === 'password' ? '👁' : '🙈';
 }
 
-// Focus passkey input on load
-window.addEventListener('load', function() {
-    document.getElementById('passkey-input').focus();
-});
+window.addEventListener('load', () => document.getElementById('passkey-username').focus());
 
-function calc(){
-const g=id=>document.getElementById(id);
-let itr='ITR-1',base=1000,load=0,risk='LOW';
-let triggers=[];
+// ── CALCULATOR ─────────────────────────────────────────────────────────────
+function g(id) { return document.getElementById(id); }
 
-const categories = {
-    'Salary & Property': [['salary', 'Salary / Pension'], ['onehp', 'One House Property'], ['multihp', 'Multiple House Properties']],
-    'Business & Profession': [['business', 'Business Income'], ['professional', 'Professional Income'], ['ad', 'Presumptive 44AD'], ['ada', 'Presumptive 44ADA']],
-    'Capital Gains': [['mf', 'Mutual Fund Capital Gains'], ['shares', 'Share Capital Gains'], ['property', 'Property Capital Gains']],
-    'Other Sources': [['interest', 'Interest Income'], ['dividend', 'Dividend Income'], ['familypension', 'Family Pension']],
-    'Special Cases & Compliance': [['fo', 'F&O Trading'], ['intraday', 'Intraday Trading'], ['foreignasset', 'Foreign Assets'], ['foreignincome', 'Foreign Income/NRI/DTAA'], ['esop', 'ESOP'], ['crypto', 'Crypto'], ['notice', 'Tax Notice'], ['revised', 'Revised Return']]
-};
+async function calc() {
+  let itr='ITR-1', base=1000, load=0, risk='LOW', triggers=[];
 
-let groupedIncomeText = "";
-let pdfIncomeHTML = "";
+  const categories = {
+    'Salary & Property':       [['salary','Salary / Pension'],['onehp','One House Property'],['multihp','Multiple House Properties']],
+    'Business & Profession':   [['business','Business Income'],['professional','Professional Income'],['ad','Presumptive 44AD'],['ada','Presumptive 44ADA']],
+    'Capital Gains':           [['mf','Mutual Fund Capital Gains'],['shares','Share Capital Gains'],['property','Property Capital Gains']],
+    'Other Sources':           [['interest','Interest Income'],['dividend','Dividend Income'],['familypension','Family Pension']],
+    'Special Cases & Compliance': [['fo','F&O Trading'],['intraday','Intraday Trading'],['foreignasset','Foreign Assets'],['foreignincome','Foreign Income/NRI/DTAA'],['esop','ESOP'],['crypto','Crypto'],['notice','Tax Notice'],['revised','Revised Return']]
+  };
 
-for (const [group, items] of Object.entries(categories)) {
-    let groupItems = [];
-    items.forEach(x => { 
-        if (g(x[0]) && g(x[0]).checked) groupItems.push(x[1]); 
-    });
-    if (groupItems.length > 0) {
-        groupedIncomeText += `\n${group}\n✓ ` + groupItems.join('\n✓ ') + '\n';
-        pdfIncomeHTML += `<h4 style="margin: 10px 0 5px; color: #0b2f57; font-size:14px; border-bottom: 1px solid #eee; padding-bottom: 4px;">${group}</h4><ul style="margin: 5px 0 15px 20px; padding: 0; font-size:13px; color: #333;"><li>` + groupItems.join('</li><li>') + `</li></ul>`;
+  let groupedIncomeText = '', pdfIncomeHTML = '';
+  for (const [group, items] of Object.entries(categories)) {
+    const sel = items.filter(x => g(x[0])?.checked).map(x => x[1]);
+    if (sel.length) {
+      groupedIncomeText += `\n${group}\n✓ ` + sel.join('\n✓ ') + '\n';
+      pdfIncomeHTML += `<h4 style="margin:10px 0 5px;color:#053D70;font-size:14px;">${group}</h4><ul style="margin:5px 0 12px 20px;font-size:13px;"><li>${sel.join('</li><li>')}</li></ul>`;
     }
-}
+  }
 
-// Logic checks to see if the main categories are actually checked
-const hasSharesMF = g('mf').checked || g('shares').checked;
-const hasProperty = g('property').checked;
+  const hasSharesMF = g('mf').checked || g('shares').checked;
+  const hasProperty = g('property').checked;
 
-// Trigger Custom Quote for heavy volume (Only applies if the related checkbox is ticked)
-if(g('foreignincome').checked || (hasSharesMF && g('shareTxn').value==='500+') || (hasProperty && g('propTxn').value==='4+')){
-    g('out').textContent='CUSTOM QUOTE REQUIRED (Premium Case)';
+  // Custom quote threshold
+  if (g('foreignincome').checked || (hasSharesMF && g('shareTxn').value==='500+') || (hasProperty && g('propTxn').value==='4+')) {
+    g('out').textContent = 'CUSTOM QUOTE REQUIRED (Premium Case)';
     g('actions').innerHTML = '';
     return;
-}
+  }
 
-const gstApplicable=g('business').checked||g('professional').checked||g('ad').checked||g('ada').checked;
-const gstReg=g('gst').value==='GST Registered';
+  const gstReg = g('gst').value === 'GST Registered';
 
-if(g('business').checked||g('professional').checked||g('fo').checked||g('intraday').checked){
- itr='ITR-3'; base=gstReg?2000:1500;
-}else if(g('ad').checked||g('ada').checked){
- itr='ITR-4'; base=gstReg?1500:1000;
-}else if(g('mf').checked||g('shares').checked||g('property').checked||g('multihp').checked||g('foreignasset').checked||g('dividend').checked){
- itr='ITR-2'; base=1500;
-}
+  if (g('business').checked||g('professional').checked||g('fo').checked||g('intraday').checked) {
+    itr='ITR-3'; base=gstReg?2000:1500;
+  } else if (g('ad').checked||g('ada').checked) {
+    itr='ITR-4'; base=gstReg?1500:1000;
+  } else if (g('mf').checked||g('shares').checked||g('property').checked||g('multihp').checked||g('foreignasset').checked||g('dividend').checked) {
+    itr='ITR-2'; base=1500;
+  }
 
-if(g('foreignasset').checked){load+=500;triggers.push('✓ Foreign Assets')}
-if(g('multihp').checked){load+=500;triggers.push('✓ Multiple House Property')}
+  if(g('foreignasset').checked){load+=500;triggers.push('✓ Foreign Assets')}
+  if(g('multihp').checked){load+=500;triggers.push('✓ Multiple House Property')}
+  if(g('demat').value==='2-3'){load+=500;triggers.push('✓ 2-3 Demat Accounts')}
+  if(g('demat').value==='4+'){load+=1000;triggers.push('✓ 4+ Demat Accounts')}
+  if(hasSharesMF && g('shareTxn').value==='51-500'){load+=500;triggers.push('✓ 51-500 Share/MF Txns')}
+  if(hasProperty && g('propTxn').value==='2-3'){load+=1000;triggers.push('✓ 2-3 Property Txns')}
+  if(g('fo').checked){load+=500;triggers.push('✓ F&O')}
+  if(g('intraday').checked){load+=500;triggers.push('✓ Intraday')}
+  if(g('esop').checked){load+=1000;triggers.push('✓ ESOP')}
+  if(g('crypto').checked){load+=1000;triggers.push('✓ Crypto')}
+  if(g('notice').checked){load+=1000;triggers.push('✓ Notice')}
+  if(g('revised').checked){load+=1000;triggers.push('✓ Revised Return')}
 
-// Demat Loading Rules
-if(g('demat').value==='2-3'){load+=500;triggers.push('✓ 2-3 Demat Accounts')}
-if(g('demat').value==='4+'){load+=1000;triggers.push('✓ 4+ Demat Accounts')}
+  if(load>0) risk = load>=1000?'HIGH':'MODERATE';
 
-// Transaction Loading Rules (Ignored if parent checkboxes are not ticked)
-if(hasSharesMF && g('shareTxn').value==='51-500'){load+=500;triggers.push('✓ 51-500 Share/MF Txns')}
-if(hasProperty && g('propTxn').value==='2-3'){load+=1000;triggers.push('✓ 2-3 Property Txns')}
+  const total = base + load;
+  const quote = `📋 *Professional Fee Quotation | DAIS Advisors*\n\nDear ${g('clientName').value||'Client'},\n\n*Recommended Professional Fee: ₹${total.toLocaleString('en-IN')}*\n\nApplicable Income Tax Return Category: ${itr}.\n\nRegards,\nDAIS Advisors`;
 
-if(g('fo').checked){load+=500;triggers.push('✓ F&O')}
-if(g('intraday').checked){load+=500;triggers.push('✓ Intraday')}
-if(g('esop').checked){load+=1000;triggers.push('✓ ESOP')}
-if(g('crypto').checked){load+=1000;triggers.push('✓ Crypto')}
-if(g('notice').checked){load+=1000;triggers.push('✓ Notice')}
-if(g('revised').checked){load+=1000;triggers.push('✓ Revised Return')}
+  window.currentQuote = quote;
+  g('out').textContent = quote;
 
-if(load>0) risk=load>=1000?'HIGH':'MODERATE';
+  // Populate PDF template
+  g('pdf-date').textContent   = new Date().toLocaleDateString('en-IN');
+  g('pdf-client').textContent = g('clientName').value||'N/A';
+  g('pdf-mobile').textContent = g('mobile').value||'N/A';
+  g('pdf-ay').textContent     = g('ay').value||'N/A';
+  g('pdf-staff').textContent  = g('staff').value||'N/A';
+  g('pdf-itr').textContent    = itr;
+  g('pdf-gst').textContent    = gstReg?'Yes':'No';
+  g('pdf-demat').textContent  = g('demat').value;
+  g('pdf-shareTxn').textContent = hasSharesMF?g('shareTxn').value:'N/A';
+  g('pdf-propTxn').textContent  = hasProperty?g('propTxn').value:'N/A';
+  g('pdf-risk').textContent   = risk;
+  g('pdf-itr-fee-label').textContent = itr;
+  g('pdf-base').textContent   = '₹'+base.toLocaleString('en-IN');
+  g('pdf-load').textContent   = '₹'+load.toLocaleString('en-IN');
+  g('pdf-total').textContent  = '₹'+total.toLocaleString('en-IN');
+  g('pdf-incomes').innerHTML  = pdfIncomeHTML||'<p style="font-size:13px;color:#555;">None Selected</p>';
 
+  // Complexity factors
+  const complexityLabels = {
+    foreignasset:'Foreign Assets (Schedule FA)',multihp:'Multiple House Properties',
+    fo:'F&O Trading',intraday:'Intraday Trading',esop:'ESOP Perquisites',
+    crypto:'Crypto / VDA',notice:'Tax Notice',revised:'Revised Return'
+  };
+  const dematLabel = {'2-3':'2–3 Demat Accounts','4+':'4+ Demat Accounts'};
+  const shareTxnLabel = {'51-500':'51–500 Share/MF Transactions'};
+  const propTxnLabel  = {'2-3':'2–3 Property Transactions'};
+  let ci = [];
+  for (const [id,lbl] of Object.entries(complexityLabels)) if(g(id)?.checked) ci.push(lbl);
+  if(dematLabel[g('demat').value]) ci.push(dematLabel[g('demat').value]);
+  if(hasSharesMF&&shareTxnLabel[g('shareTxn').value]) ci.push(shareTxnLabel[g('shareTxn').value]);
+  if(hasProperty&&propTxnLabel[g('propTxn').value]) ci.push(propTxnLabel[g('propTxn').value]);
+  if(ci.length) { g('pdf-complexity-none').style.display='none'; g('pdf-complexity-list').innerHTML=ci.map(x=>`<li>${x}</li>`).join(''); }
+  else { g('pdf-complexity-none').style.display='block'; g('pdf-complexity-list').innerHTML=''; }
 
-let quote=`📋 *Professional Fee Quotation | DAIS Advisors*
+  // Scope of services
+  const scope=[];
+  scope.push(`Preparation and filing of ${itr} for ${g('ay').value||'AY 2026-27'}`);
+  scope.push('Computation of total income and tax liability under Old/New Regime');
+  if(g('salary').checked) scope.push('Salary income reconciliation with Form 16 and Form 26AS');
+  if(g('interest').checked||g('dividend').checked) scope.push('Other sources income computation');
+  if(g('mf').checked||g('shares').checked) scope.push('Capital gains computation from Mutual Funds and Shares');
+  if(g('property').checked) scope.push('Capital gains computation from Property Sale');
+  if(g('onehp').checked||g('multihp').checked) scope.push('House Property income computation');
+  if(g('business').checked||g('professional').checked) scope.push('Business / Professional income computation');
+  if(g('ad').checked) scope.push('Presumptive income under Section 44AD');
+  if(g('ada').checked) scope.push('Presumptive income under Section 44ADA');
+  if(g('fo').checked) scope.push('F&O trading income computation');
+  if(g('intraday').checked) scope.push('Intraday trading income / loss computation');
+  if(g('foreignasset').checked) scope.push('Schedule FA – Foreign Assets disclosure');
+  if(g('esop').checked) scope.push('ESOP perquisite valuation and capital gain');
+  if(g('crypto').checked) scope.push('Crypto / VDA income and Schedule VDA filing');
+  if(g('notice').checked) scope.push('Tax Notice response and representation');
+  if(g('revised').checked) scope.push('Revised / Rectification Return filing');
+  scope.push('Reconciliation with Form 26AS, AIS & TIS');
+  scope.push('Post-filing acknowledgment and e-verification');
+  g('pdf-scope').innerHTML = scope.map(s=>`<li>${s}</li>`).join('');
 
-Dear ${g('clientName').value || 'Client'},
-
-*Recommended Professional Fee: ₹${(base+load).toLocaleString('en-IN')}*
-
-Applicable Income Tax Return Category: ${itr}.
-
-Regards,
-DAIS Advisors`;
-
-// Store the pure quote text globally so the clipboard copies the asterisks properly
-window.currentQuote = quote;
-
-// Display text output (We keep the asterisks visible here so the user knows what will be bolded)
-g('out').textContent = quote;
-
-// Populate the Hidden Data Template - FIXED: Uses textContent to securely capture hidden data
-g('pdf-date').textContent = new Date().toLocaleDateString('en-IN');
-g('pdf-client').textContent = g('clientName').value || 'N/A';
-g('pdf-mobile').textContent = g('mobile').value || 'N/A';
-g('pdf-ay').textContent = g('ay').value || 'N/A';
-g('pdf-staff').textContent = g('staff').value || 'N/A';
-g('pdf-itr').textContent = itr;
-g('pdf-gst').textContent = gstReg ? 'Yes' : 'No';
-g('pdf-demat').textContent = g('demat').value;
-g('pdf-shareTxn').textContent = hasSharesMF ? g('shareTxn').value : 'N/A';
-g('pdf-propTxn').textContent = hasProperty ? g('propTxn').value : 'N/A';
-g('pdf-risk').textContent = risk;
-g('pdf-itr-fee-label').textContent = itr;
-g('pdf-base').textContent = '₹' + base.toLocaleString('en-IN');
-g('pdf-load').textContent = '₹' + load.toLocaleString('en-IN');
-g('pdf-total').textContent = '₹' + (base + load).toLocaleString('en-IN');
-g('pdf-incomes').innerHTML = pdfIncomeHTML || '<p style="font-size:13px; color:#555;">None Selected</p>';
-
-// Populate Complexity Factors
-const complexityLabels = {
-    'foreignasset':  'Foreign Assets (Schedule FA required)',
-    'multihp':       'Multiple House Properties',
-    'fo':            'F&O Trading (Books of Accounts required)',
-    'intraday':      'Intraday Trading',
-    'esop':          'ESOP Perquisites',
-    'crypto':        'Crypto / VDA Transactions',
-    'notice':        'Tax Notice / Departmental Proceedings',
-    'revised':       'Revised / Rectification Return',
-};
-const dematLabel = { '2-3': '2–3 Demat Accounts', '4+': '4+ Demat Accounts' };
-const shareTxnLabel = { '51-500': '51–500 Share/MF Transactions', '500+': '500+ Share/MF Transactions (Custom Quote)' };
-const propTxnLabel = { '2-3': '2–3 Property Transactions', '4+': '4+ Property Transactions (Custom Quote)' };
-
-let complexityItems = [];
-for (const [id, label] of Object.entries(complexityLabels)) {
-    if (g(id) && g(id).checked) complexityItems.push(label);
-}
-if (dematLabel[g('demat').value]) complexityItems.push(dematLabel[g('demat').value]);
-if (hasSharesMF && shareTxnLabel[g('shareTxn').value]) complexityItems.push(shareTxnLabel[g('shareTxn').value]);
-if (hasProperty && propTxnLabel[g('propTxn').value]) complexityItems.push(propTxnLabel[g('propTxn').value]);
-
-if (complexityItems.length > 0) {
-    g('pdf-complexity-none').style.display = 'none';
-    g('pdf-complexity-list').innerHTML = complexityItems.map(x => `<li>${x}</li>`).join('');
-} else {
-    g('pdf-complexity-none').style.display = 'block';
-    g('pdf-complexity-list').innerHTML = '';
-}
-
-// Populate Scope of Services
-const scopeServices = [];
-scopeServices.push(`Preparation and filing of ${itr} for ${g('ay').value || 'AY 2026-27'}`);
-scopeServices.push('Computation of total income and tax liability under Old / New Regime (whichever applicable)');
-if (g('salary').checked) scopeServices.push('Salary income reconciliation with Form 16 and Form 26AS');
-if (g('interest').checked || g('dividend').checked || g('familypension').checked) scopeServices.push('Other sources income computation (Interest / Dividend / Family Pension)');
-if (g('mf').checked || g('shares').checked) scopeServices.push('Capital gains computation from Mutual Funds and Shares');
-if (g('property').checked) scopeServices.push('Capital gains computation from Property Sale (with indexation benefit)');
-if (g('onehp').checked || g('multihp').checked) scopeServices.push('House Property income computation including interest on loan deduction');
-if (g('business').checked || g('professional').checked) scopeServices.push('Profit & Loss preparation and business / professional income computation');
-if (g('ad').checked) scopeServices.push('Presumptive income computation under Section 44AD');
-if (g('ada').checked) scopeServices.push('Presumptive income computation under Section 44ADA');
-if (g('fo').checked) scopeServices.push('F&O trading income computation with books of accounts (P&L from broker)');
-if (g('intraday').checked) scopeServices.push('Intraday trading income / loss computation');
-if (g('foreignasset').checked) scopeServices.push('Schedule FA – Foreign Assets and Income disclosure');
-if (g('foreignincome').checked) scopeServices.push('Foreign income computation with DTAA relief / NRI tax planning');
-if (g('esop').checked) scopeServices.push('ESOP perquisite valuation and capital gain computation on sale');
-if (g('crypto').checked) scopeServices.push('Crypto / VDA income computation and Schedule VDA filing');
-if (g('notice').checked) scopeServices.push('Response preparation and representation for Tax Notice / Assessment');
-if (g('revised').checked) scopeServices.push('Filing of Revised / Rectification Return');
-scopeServices.push('Reconciliation with Form 26AS, AIS & TIS');
-scopeServices.push('Post-filing acknowledgment (ITR-V) and e-verification support');
-g('pdf-scope').innerHTML = scopeServices.map(s => `<li>${s}</li>`).join('');
-
-// ── Log to Google Sheet ──────────────────────────────────
-const sheetPayload = {
-    action:     'log',
+  // ── Store assessment data — will be logged when user acts on it ──────────
+  window._pendingRecord = {
+    row_id:     'Q' + Date.now(),
     date:       new Date().toLocaleDateString('en-IN'),
-    client:     g('clientName').value || 'N/A',
-    mobile:     g('mobile').value || 'N/A',
-    ay:         g('ay').value || 'N/A',
-    itr:        itr,
-    base:       base,
+    client_name:g('clientName').value||'N/A',
+    mobile:     g('mobile').value||'N/A',
+    ay:         g('ay').value||'N/A',
+    itr_type:   itr,
+    base_fee:   base,
     loading:    load,
-    total:      base + load,
-    staff:      g('staff').value || 'N/A',
+    total_fee:  total,
+    staff:      g('staff').value||'N/A',
     complexity: risk,
-};
+    status:     'Pending'
+  };
+  window._lastRowId  = null; // reset — will be set after actual logging
+  window._isLogged   = false;
 
-let currentRowId = null;
-
-fetch('https://script.google.com/macros/s/AKfycbzfXWWOwgBQMtEWnCXTmRqJjyDZSPvx5QNtpv4N_BwXhEj3-fMqyUJtB1RKrgUa9IsAMA/exec', {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(sheetPayload)
-}).then(() => {
-    // no-cors means we can't read response — rowId returned via workaround below
-}).catch(() => {});
-
-// Generate a local rowId (same logic as Apps Script: 'Q' + Date.now())
-currentRowId = 'Q' + Date.now();
-window._lastRowId = currentRowId;
-
-// Create Action Buttons
-let wa='https://wa.me/918529081017?text='+encodeURIComponent(quote);
-g('actions').innerHTML=`
-    <button class="btn" style="background: #25D366;" onclick="window.open('${wa}')">Send to WhatsApp</button>
-    <button class="btn" style="background: #d32f2f;" onclick="downloadPDF()">Download PDF Quote</button>
-    <button class="btn" style="background: #607d8b;" onclick="navigator.clipboard.writeText(window.currentQuote); alert('Quote successfully copied to clipboard!');">Copy Text</button>
-    <button class="btn" style="background: #2e7d32;" onclick="markAsPaid()">✓ Mark as Paid</button>
-`;
+  // Action buttons
+  const wa = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(quote);
+  g('actions').innerHTML = `
+    <button class="btn" style="background:#25D366;" onclick="logAndWhatsApp('${wa}')">📱 Send to WhatsApp</button>
+    <button class="btn" style="background:#d32f2f;" onclick="logAndPDF()">📄 Download PDF Quote</button>
+    <button class="btn" style="background:#607d8b;" onclick="logAndCopy()">📋 Copy Text</button>
+    <button class="btn" style="background:#2e7d32;" id="mark-paid-btn" onclick="markAsPaid()">✓ Mark as Paid</button>
+  `;
 }
 
-function markAsPaid() {
-    const rowId = window._lastRowId;
-    if (!rowId) {
-        alert('Please generate an assessment first before marking as paid.');
-        return;
-    }
-
-    // Show reference input modal
-    const overlay = document.createElement('div');
-    overlay.id = 'paid-overlay';
-    overlay.style.cssText = `
-        position:fixed; top:0; left:0; width:100%; height:100%;
-        background:rgba(0,0,0,0.55); z-index:9999;
-        display:flex; align-items:center; justify-content:center;`;
-
-    overlay.innerHTML = `
-        <div style="background:#fff; border-radius:10px; padding:32px 28px;
-                    width:380px; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
-            <div style="color:#0b2f57; font-size:16px; font-weight:bold;
-                        margin-bottom:6px;">Mark as Paid</div>
-            <div style="color:#666; font-size:12px; margin-bottom:20px;">
-                Enter the payment reference number (UTR / Transaction ID / Cheque No.)
-                for bank statement reconciliation.
-            </div>
-            <label style="font-size:12px; font-weight:bold; color:#333;">
-                Payment Reference No. <span style="color:red;">*</span>
-            </label>
-            <input id="ref-input" type="text" placeholder="e.g. UTR324567891234"
-                style="width:100%; margin-top:6px; padding:10px 12px;
-                       border:1.5px solid #ccc; border-radius:6px;
-                       font-size:13px; box-sizing:border-box; outline:none;"
-                onfocus="this.style.borderColor='#0b2f57'"
-                onblur="this.style.borderColor='#ccc'">
-            <div id="ref-error" style="color:red; font-size:11px;
-                                       margin-top:4px; display:none;">
-                Please enter a payment reference number.
-            </div>
-            <div style="display:flex; gap:10px; margin-top:20px;">
-                <button onclick="confirmPaid()"
-                    style="flex:1; padding:11px; background:#2e7d32; color:#fff;
-                           border:none; border-radius:6px; font-size:13px;
-                           font-weight:bold; cursor:pointer;">
-                    ✓ Confirm Payment
-                </button>
-                <button onclick="document.getElementById('paid-overlay').remove()"
-                    style="flex:1; padding:11px; background:#f5f5f5; color:#555;
-                           border:1px solid #ddd; border-radius:6px;
-                           font-size:13px; cursor:pointer;">
-                    Cancel
-                </button>
-            </div>
-        </div>`;
-
-    document.body.appendChild(overlay);
-    document.getElementById('ref-input').focus();
+// ── ACTION WRAPPERS — log first, then perform action ──────────────────────
+async function logAndWhatsApp(wa) {
+  await logIfNeeded();
+  window.open(wa);
 }
 
-function confirmPaid() {
-    const ref = document.getElementById('ref-input').value.trim();
-    if (!ref) {
-        document.getElementById('ref-error').style.display = 'block';
-        return;
-    }
+async function logAndPDF() {
+  await logIfNeeded();
+  downloadPDF();
+}
 
-    const rowId = window._lastRowId;
-    const btn = document.querySelector('#paid-overlay button');
-    btn.textContent = 'Saving...';
-    btn.disabled = true;
+async function logAndCopy() {
+  await logIfNeeded();
+  navigator.clipboard.writeText(window.currentQuote);
+  showToast('Quote copied to clipboard!');
+}
 
-    fetch('https://script.google.com/macros/s/AKfycbzfXWWOwgBQMtEWnCXTmRqJjyDZSPvx5QNtpv4N_BwXhEj3-fMqyUJtB1RKrgUa9IsAMA/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            action:    'markPaid',
-            rowId:     rowId,
-            reference: ref
-        })
-    }).then(() => {
-        document.getElementById('paid-overlay').remove();
-        // Update Mark as Paid button to show confirmed
-        const btns = document.getElementById('actions');
-        const paidBtn = btns.querySelector('button:last-child');
-        if (paidBtn) {
-            paidBtn.textContent = '✓ Marked as Paid';
-            paidBtn.style.background = '#888';
-            paidBtn.disabled = true;
-        }
-        // Show success toast
-        const toast = document.createElement('div');
-        toast.textContent = `✓ Payment recorded  |  Ref: ${ref}`;
-        toast.style.cssText = `
-            position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
-            background:#2e7d32; color:#fff; padding:12px 24px;
-            border-radius:8px; font-size:13px; font-weight:bold;
-            box-shadow:0 4px 16px rgba(0,0,0,0.2); z-index:9999;
-            animation: fadeIn 0.3s ease;`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-        window._lastRowId = null; // prevent double-marking
-    }).catch(() => {
-        document.getElementById('paid-overlay').remove();
-        alert('Network error. Please check your connection and try again.');
+// ── LOG TO SUPABASE (called on first action button click) ─────────────────
+async function logIfNeeded() {
+  if(window._isLogged || !window._pendingRecord) return;
+  try {
+    await sbInsert(window._pendingRecord);
+    window._lastRowId = window._pendingRecord.row_id;
+    window._isLogged  = true;
+    console.log('Logged to Supabase:', window._lastRowId);
+  } catch(e) {
+    console.warn('Supabase log failed:', e.message);
+  }
+}
+
+// ── MARK AS PAID ───────────────────────────────────────────────────────────
+async function markAsPaid() {
+  if (!window._pendingRecord && !window._lastRowId) { alert('Please generate an assessment first.'); return; }
+  await logIfNeeded();
+  if (!window._lastRowId) { alert('Could not save record. Check your connection.'); return; }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'paid-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:32px 28px;width:380px;box-shadow:0 8px 32px rgba(0,0,0,0.25);">
+      <div style="color:#053D70;font-size:16px;font-weight:bold;margin-bottom:6px;">Mark as Paid</div>
+      <div style="color:#666;font-size:12px;margin-bottom:20px;">Enter UTR / Transaction ID / Cheque No. for reconciliation.</div>
+      <label style="font-size:12px;font-weight:bold;color:#333;">Payment Reference No. <span style="color:red;">*</span></label>
+      <input id="ref-input" type="text" placeholder="e.g. UTR324567891234"
+        style="width:100%;margin-top:6px;padding:10px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:13px;box-sizing:border-box;"
+        onfocus="this.style.borderColor='#053D70'" onblur="this.style.borderColor='#ccc'">
+      <div id="ref-error" style="color:red;font-size:11px;margin-top:4px;display:none;">Please enter a payment reference number.</div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="confirmPaid()" id="confirm-paid-btn"
+          style="flex:1;padding:11px;background:#2e7d32;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer;">✓ Confirm Payment</button>
+        <button onclick="document.getElementById('paid-overlay').remove()"
+          style="flex:1;padding:11px;background:#f5f5f5;color:#555;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('ref-input').focus();
+}
+
+async function confirmPaid() {
+  const ref = document.getElementById('ref-input').value.trim();
+  if (!ref) { document.getElementById('ref-error').style.display = 'block'; return; }
+
+  const btn = document.getElementById('confirm-paid-btn');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+
+  try {
+    await sbUpdate(window._lastRowId, {
+      status:      'Paid',
+      payment_ref: ref,
+      paid_at:     new Date().toLocaleDateString('en-IN')
     });
+    document.getElementById('paid-overlay').remove();
+    const paidBtn = document.getElementById('mark-paid-btn');
+    if(paidBtn){ paidBtn.textContent='✓ Marked as Paid'; paidBtn.style.background='#888'; paidBtn.disabled=true; }
+    showToast(`✓ Payment recorded | Ref: ${ref}`);
+    window._lastRowId = null;
+  } catch(e) {
+    document.getElementById('paid-overlay').remove();
+    alert('Error saving payment: ' + e.message);
+  }
 }
 
+// ── PENDING CASES PANEL ────────────────────────────────────────────────────
+let _panelFilter = 'all';
+
+async function showPendingCases() {
+  // Remove existing panel
+  const existing = document.getElementById('cases-panel');
+  if(existing) existing.remove();
+
+  const panel = document.createElement('div');
+  panel.id = 'cases-panel';
+  panel.className = 'panel-overlay';
+  panel.innerHTML = `
+    <div class="panel-header">
+      <div>
+        <div style="font-size:16px;font-weight:700;">📋 Fee Quotations</div>
+        <div style="font-size:11px;opacity:0.7;margin-top:2px;">All cases from Supabase</div>
+      </div>
+      <button class="panel-close" onclick="document.getElementById('cases-panel').remove()">✕</button>
+    </div>
+    <div class="panel-body">
+      <div class="kpi-grid" id="panel-kpis">
+        <div class="kpi-box"><div class="kpi-num" id="kpi-total">—</div><div class="kpi-lbl">Total Cases</div></div>
+        <div class="kpi-box"><div class="kpi-num" id="kpi-pending" style="color:#856404;">—</div><div class="kpi-lbl">Pending</div></div>
+        <div class="kpi-box"><div class="kpi-num" id="kpi-paid" style="color:#155724;">—</div><div class="kpi-lbl">Paid</div></div>
+        <div class="kpi-box"><div class="kpi-num" id="kpi-amount" style="color:#053D70;">—</div><div class="kpi-lbl">Total Billed</div></div>
+      </div>
+      <div class="filter-row">
+        <button class="filter-btn active" id="f-all"     onclick="setPanelFilter('all',this)">All</button>
+        <button class="filter-btn"        id="f-Pending" onclick="setPanelFilter('Pending',this)">Pending</button>
+        <button class="filter-btn"        id="f-Paid"    onclick="setPanelFilter('Paid',this)">Paid</button>
+      </div>
+      <div id="panel-cases"><div style="text-align:center;padding:30px;color:#888;">Loading from Supabase…</div></div>
+    </div>`;
+  document.body.appendChild(panel);
+
+  try {
+    const rows = await sbSelect();
+    window._allCases = rows;
+    renderPanelKPIs(rows);
+    renderPanelCases(rows);
+  } catch(e) {
+    document.getElementById('panel-cases').innerHTML = `<div style="color:red;padding:20px;">Error loading: ${e.message}<br><br>Check your Supabase URL and API Key in the tool configuration.</div>`;
+  }
+}
+
+function setPanelFilter(filter, btn) {
+  _panelFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPanelCases(window._allCases||[]);
+}
+
+function renderPanelKPIs(rows) {
+  const pending = rows.filter(r=>r.status==='Pending').length;
+  const paid    = rows.filter(r=>r.status==='Paid').length;
+  const total   = rows.reduce((s,r)=>s+(r.total_fee||0), 0);
+  document.getElementById('kpi-total').textContent   = rows.length;
+  document.getElementById('kpi-pending').textContent = pending;
+  document.getElementById('kpi-paid').textContent    = paid;
+  document.getElementById('kpi-amount').textContent  = '₹'+total.toLocaleString('en-IN');
+}
+
+function renderPanelCases(rows) {
+  const filtered = _panelFilter==='all' ? rows : rows.filter(r=>r.status===_panelFilter);
+  const container = document.getElementById('panel-cases');
+  if(!filtered.length) {
+    container.innerHTML = `<div style="text-align:center;padding:30px;color:#888;">No ${_panelFilter==='all'?'':_panelFilter} cases found.</div>`;
+    return;
+  }
+  container.innerHTML = filtered.map(r => `
+    <div class="case-card ${r.status==='Paid'?'paid':''}" id="case-${r.row_id}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="case-name">${r.client_name||'—'}</div>
+          <div class="case-meta">📱 ${r.mobile||'—'} &nbsp;|&nbsp; ${r.itr_type||'—'} &nbsp;|&nbsp; ${r.ay||'—'} &nbsp;|&nbsp; Staff: ${r.staff||'—'}</div>
+          <div class="case-meta" style="margin-top:3px;">📅 ${r.date||'—'} &nbsp;|&nbsp; Complexity: <b>${r.complexity||'—'}</b></div>
+          <div class="case-fee">₹${(r.total_fee||0).toLocaleString('en-IN')}</div>
+          ${r.payment_ref?`<div style="font-size:11px;color:#155724;margin-top:4px;">Ref: ${r.payment_ref} | Paid: ${r.paid_at||'—'}</div>`:''}
+        </div>
+        <span class="${r.status==='Paid'?'badge-paid':'badge-pending'}">${r.status||'Pending'}</span>
+      </div>
+      ${r.status!=='Paid'?`
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <input id="utr-${r.row_id}" type="text" placeholder="UTR / Ref No." style="flex:1;padding:7px 10px;font-size:12px;">
+        <button onclick="markCaseAsPaid('${r.row_id}',this)"
+          style="padding:7px 14px;background:#2e7d32;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;">✓ Mark Paid</button>
+      </div>`:''}
+    </div>`).join('');
+}
+
+async function markCaseAsPaid(rowId, btn) {
+  const ref = document.getElementById('utr-'+rowId).value.trim();
+  if(!ref) { alert('Please enter a payment reference number.'); return; }
+  btn.textContent = 'Saving...'; btn.disabled = true;
+  try {
+    await sbUpdate(rowId, {
+      status:      'Paid',
+      payment_ref: ref,
+      paid_at:     new Date().toLocaleDateString('en-IN')
+    });
+    showToast('✓ Marked as Paid — Ref: '+ref);
+    // Refresh panel
+    const rows = await sbSelect();
+    window._allCases = rows;
+    renderPanelKPIs(rows);
+    renderPanelCases(rows);
+  } catch(e) {
+    alert('Error: '+e.message);
+    btn.textContent = '✓ Mark Paid'; btn.disabled = false;
+  }
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function showToast(msg, color='#2e7d32') {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:${color};color:#fff;padding:12px 24px;border-radius:8px;font-size:13px;font-weight:bold;box-shadow:0 4px 16px rgba(0,0,0,0.2);z-index:99999;`;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+
+// ── PDF GENERATION ─────────────────────────────────────────────────────────
 function downloadPDF() {
-    if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
-        alert('PDF library is still loading. Please try again in a moment.');
-        return;
-    }
-    const { jsPDF } = window.jspdf;
+  if(typeof window.jspdf==='undefined'||typeof window.jspdf.jsPDF==='undefined'){
+    alert('PDF library loading. Please try again in a moment.'); return;
+  }
+  const {jsPDF} = window.jspdf;
+  const d = {
+    client:    g('pdf-client').textContent,
+    mobile:    g('pdf-mobile').textContent,
+    ay:        g('pdf-ay').textContent,
+    date:      g('pdf-date').textContent,
+    itr:       g('pdf-itr').textContent,
+    gst:       g('pdf-gst').textContent,
+    staff:     g('pdf-staff').textContent,
+    demat:     g('pdf-demat').textContent,
+    shareTxn:  g('pdf-shareTxn').textContent,
+    propTxn:   g('pdf-propTxn').textContent,
+    risk:      g('pdf-risk').textContent,
+    base:      g('pdf-base').textContent,
+    load:      g('pdf-load').textContent,
+    total:     g('pdf-total').textContent,
+    incomes:   g('pdf-incomes').innerHTML,
+    complexity:g('pdf-complexity-list').innerHTML,
+    scope:     g('pdf-scope').innerHTML,
+  };
 
-    // ── Pull all data ──────────────────────────────────────────────
-    const d = {
-        client:   document.getElementById('pdf-client').textContent.trim(),
-        mobile:   document.getElementById('pdf-mobile').textContent.trim(),
-        ay:       document.getElementById('pdf-ay').textContent.trim(),
-        date:     document.getElementById('pdf-date').textContent.trim(),
-        itr:      document.getElementById('pdf-itr').textContent.trim(),
-        gst:      document.getElementById('pdf-gst').textContent.trim(),
-        staff:    document.getElementById('pdf-staff').textContent.trim(),
-        demat:    document.getElementById('pdf-demat').textContent.trim(),
-        shareTxn: document.getElementById('pdf-shareTxn').textContent.trim(),
-        propTxn:  document.getElementById('pdf-propTxn').textContent.trim(),
-        risk:     document.getElementById('pdf-risk').textContent.trim(),
-        base:     document.getElementById('pdf-base').textContent.trim(),
-        load:     document.getElementById('pdf-load').textContent.trim(),
-        total:    document.getElementById('pdf-total').textContent.trim(),
-    };
+  const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const navy=[5,61,112], gold=[255,192,0], gray=[100,100,100];
+  const W=210, ml=18, mr=192;
+  let y=18;
 
-    // Parse income items from hidden template
-    const incomeEls = document.querySelectorAll('#pdf-incomes li');
-    const incomes = Array.from(incomeEls).map(li => li.textContent.trim());
+  function setFont(style,size,color=[0,0,0]){doc.setFont('helvetica',style);doc.setFontSize(size);doc.setTextColor(...color);}
+  function hrule(yy,color=navy,w=0.3){doc.setDrawColor(...color);doc.setLineWidth(w);doc.line(ml,yy,mr,yy);}
+  function addSectionTitle(label){y+=6;setFont('bold',10,navy);doc.text(label,ml,y);y+=1;hrule(y,[200,210,220],0.2);y+=5;}
 
-    // Parse complexity items
-    const complexityEls = document.querySelectorAll('#pdf-complexity-list li');
-    const complexities = Array.from(complexityEls).map(li => li.textContent.trim());
-    const noComplexity = document.getElementById('pdf-complexity-none').style.display !== 'none';
+  // Header
+  doc.setFillColor(...navy);doc.rect(0,0,W,28,'F');
+  doc.setFillColor(...gold);doc.rect(0,28,W,1.2,'F');
+  setFont('bold',15,[255,255,255]);doc.text('DAIS ADVISORS PRIVATE LIMITED',W/2,13,{align:'center'});
+  setFont('normal',9,[255,255,255]);doc.text('PROFESSIONAL FEE QUOTATION',W/2,21,{align:'center'});
+  y=38;
 
-    // Parse scope items
-    const scopeEls = document.querySelectorAll('#pdf-scope li');
-    const scope = Array.from(scopeEls).map(li => li.textContent.trim());
+  // Client details
+  addSectionTitle('Client Details');
+  const fields=[['Client Name',d.client,'Assessment Year',d.ay],['Mobile',d.mobile,'Date',d.date],['Applicable ITR',d.itr,'GST Registered',d.gst],['Handled By',d.staff,'','' ]];
+  fields.forEach(row=>{
+    setFont('bold',8,gray);doc.text(row[0]+':',ml,y);setFont('normal',9);doc.text(row[1],ml+32,y);
+    if(row[2]){setFont('bold',8,gray);doc.text(row[2]+':',110,y);setFont('normal',9);doc.text(row[3],110+32,y);}
+    y+=6;
+  });
 
-    // Fee rows
-    const feeRows = [
-        [d.itr + ' Return Preparation & Filing', d.base],
-        ['Additional Loading (Complexity & Scope)', d.load],
-    ];
+  // Fee box
+  y+=3;
+  doc.setFillColor(240,247,255);doc.roundedRect(ml,y,mr-ml,16,2,2,'F');
+  doc.setDrawColor(...navy);doc.setLineWidth(0.3);doc.roundedRect(ml,y,mr-ml,16,2,2,'S');
+  setFont('bold',12,navy);doc.text('Recommended Professional Fee: '+d.total,W/2,y+10,{align:'center'});
+  y+=22;
 
-    // ── jsPDF setup ────────────────────────────────────────────────
-    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-    const PW = 210, PH = 297;
-    const ML = 18, MR = 18, MT = 16;
-    const CW = PW - ML - MR;   // content width = 174mm
+  // Income sources
+  addSectionTitle('Income Sources Considered');
+  const tmp=document.createElement('div');tmp.innerHTML=d.incomes;
+  tmp.querySelectorAll('h4,li').forEach(el=>{
+    if(el.tagName==='H4'){setFont('bold',9,navy);doc.text(el.textContent,ml,y);y+=5;}
+    else{setFont('normal',8,[50,50,50]);doc.text('✓ '+el.textContent,ml+4,y);y+=5;}
+    if(y>260){doc.addPage();y=20;}
+  });
 
-    // ── Colour palette — minimal, near-monochrome ──────────────────
-    const NAVY   = [11,  47,  87];    // #0b2f57 — used sparingly, headings only
-    const GOLD   = [255, 192,  0];    // #FFC000 — one accent line only
-    const BLACK  = [30,  30,  30];    // near-black body text
-    const MID    = [100, 100, 100];   // secondary labels
-    const RULE   = [200, 200, 200];   // hairline rules
-    const LGRAY  = [248, 248, 248];   // barely-there table row tint
-    const WHITE  = [255, 255, 255];
-
-    let y = MT;
-
-    // ── Helpers ────────────────────────────────────────────────────
-    function setFont(style, size, color) {
-        doc.setFont('helvetica', style);
-        doc.setFontSize(size);
-        doc.setTextColor(...(color || BLACK));
-    }
-    function hrule(yy, color, w) {
-        doc.setDrawColor(...(color || RULE));
-        doc.setLineWidth(w || 0.2);
-        doc.line(ML, yy, ML + CW, yy);
-    }
-    function sectionTitle(label) {
-        y += 7;
-        setFont('bold', 8, NAVY);
-        doc.text(label.toUpperCase(), ML, y);
-        y += 2;
-        hrule(y, GOLD, 0.5);   // single gold underline — only colour accent per section
-        y += 5;
-    }
-    function checkRow(text) {
-        const lines = doc.splitTextToSize(text, CW - 8);
-        setFont('normal', 7.8, MID);
-        doc.text('–', ML + 1, y);          // simple dash, not coloured tick
-        setFont('normal', 7.8, BLACK);
-        doc.text(lines, ML + 6, y);
-        y += lines.length * 4.8;
-    }
-
-    // ── PAGE HEADER ────────────────────────────────────────────────
-    function drawHeader(logoDataUrl) {
-        // White background — no navy band
-        // Logo top-left, small
-        if (logoDataUrl) {
-            doc.addImage(logoDataUrl, 'PNG', ML, 10, 18, 18);
-        }
-        const textX = logoDataUrl ? ML + 22 : ML;
-
-        setFont('bold', 14, NAVY);
-        doc.text('DAIS ADVISORS PRIVATE LIMITED', textX, 20);
-        setFont('normal', 8, MID);
-        doc.text('Professional Fee Quotation', textX, 26);
-
-        // Date / ref right-aligned
-        setFont('normal', 7.5, MID);
-        doc.text(d.date, PW - MR, 20, { align: 'right' });
-        doc.text(d.ay,   PW - MR, 26, { align: 'right' });
-
-        // Single gold rule under header
-        y = 32;
-        doc.setDrawColor(...GOLD);
-        doc.setLineWidth(0.6);
-        doc.line(ML, y, ML + CW, y);
-        // Thin gray rule just below
-        doc.setDrawColor(...RULE);
-        doc.setLineWidth(0.2);
-        doc.line(ML, y + 0.8, ML + CW, y + 0.8);
-
-        y = 38;
-        continueDoc();
-    }
-
-    function continueDoc() {
-
-        // ── CLIENT DETAILS ─────────────────────────────────────────
-        sectionTitle('Client Details');
-
-        const kvData = [
-            ['Client Name',     d.client,   'Assessment Year', d.ay   ],
-            ['Mobile',          d.mobile,   'Applicable ITR',  d.itr  ],
-            ['GST Status',      d.gst === 'Yes' ? 'GST Registered' : 'Not Registered',
-                                            'Handled By',      d.staff],
-        ];
-        const c1 = ML, c2 = ML + CW * 0.26, c3 = ML + CW * 0.52, c4 = ML + CW * 0.76;
-
-        kvData.forEach((row, i) => {
-            const ry = y + i * 8;
-            if (i % 2 === 0) {
-                doc.setFillColor(...LGRAY);
-                doc.rect(ML, ry - 4, CW, 8, 'F');
-            }
-            setFont('bold', 7.8, MID);
-            doc.text(row[0], c1 + 2, ry);
-            setFont('normal', 7.8, BLACK);
-            doc.text(row[1] || '—', c2, ry);
-            setFont('bold', 7.8, MID);
-            doc.text(row[2], c3 + 2, ry);
-            setFont('normal', 7.8, BLACK);
-            doc.text(row[3] || '—', c4, ry);
-        });
-        y += kvData.length * 8 + 2;
-
-        // ── RECOMMENDED FEE — restrained box ──────────────────────
-        y += 4;
-        // Thin border box, no fill
-        doc.setDrawColor(...RULE);
-        doc.setLineWidth(0.3);
-        doc.rect(ML, y, CW, 13, 'S');
-        // Left navy bar, narrow
-        doc.setFillColor(...NAVY);
-        doc.rect(ML, y, 2, 13, 'F');
-
-        setFont('normal', 7.5, MID);
-        doc.text('Recommended Professional Fee', ML + 6, y + 5);
-        setFont('bold', 12, NAVY);
-        doc.text(d.total, ML + 6, y + 10.5);
-        setFont('normal', 7.5, MID);
-        doc.text('All-inclusive  ·  Valid for 30 days', PW - MR, y + 8, { align: 'right' });
-        y += 18;
-
-        // ── INCOME SOURCES ─────────────────────────────────────────
-        if (incomes.length > 0) {
-            sectionTitle('Income Sources Considered');
-            incomes.forEach(item => checkRow(item));
-        }
-
-        // ── COMPLEXITY FACTORS ─────────────────────────────────────
-        sectionTitle('Complexity Factors Considered');
-        if (noComplexity || complexities.length === 0) {
-            setFont('normal', 7.8, MID);
-            doc.text('No complexity loading factors applicable.', ML + 2, y);
-            y += 5;
-        } else {
-            complexities.forEach(item => checkRow(item));
-        }
-        setFont('normal', 7.8, MID);
-        doc.text('Overall Case Complexity:', ML + 2, y);
-        setFont('bold', 7.8, BLACK);
-        doc.text(d.risk, ML + 44, y);
-        y += 7;
-
-        // ── FEE COMPUTATION ────────────────────────────────────────
-        sectionTitle('Fee Computation');
-
-        // Table header — very light
-        doc.setFillColor(...LGRAY);
-        doc.rect(ML, y - 1, CW, 7, 'F');
-        hrule(y - 1, RULE, 0.3);
-        setFont('bold', 7.8, MID);
-        doc.text('Particulars', ML + 3, y + 3.5);
-        doc.text('Amount', ML + CW - 3, y + 3.5, { align: 'right' });
-        hrule(y + 6, RULE, 0.3);
-        y += 7;
-
-        feeRows.forEach((row) => {
-            setFont('normal', 8, BLACK);
-            doc.text(row[0], ML + 3, y + 4);
-            doc.text(row[1], ML + CW - 3, y + 4, { align: 'right' });
-            hrule(y + 7, RULE, 0.15);
-            y += 8;
-        });
-
-        // Total row — navy text, light rule above, no fill
-        hrule(y, NAVY, 0.4);
-        y += 1;
-        setFont('bold', 9, NAVY);
-        doc.text('Total Recommended Professional Fee', ML + 3, y + 5);
-        doc.text(d.total, ML + CW - 3, y + 5, { align: 'right' });
-        hrule(y + 7, NAVY, 0.4);
-        y += 12;
-
-        // ── SCOPE OF SERVICES ──────────────────────────────────────
-        if (scope.length > 0) {
-            sectionTitle('Scope of Services');
-            scope.forEach(item => checkRow(item));
-        }
-
-        // ── IMPORTANT NOTE ─────────────────────────────────────────
-        y += 5;
-        hrule(y, RULE, 0.2);
-        y += 4;
-        setFont('bold', 7.5, MID);
-        doc.text('IMPORTANT NOTE', ML, y);
-        y += 4.5;
-        setFont('normal', 7.5, MID);
-        const noteText = 'The above professional fee is indicative and based on information presently available. Final fees may vary based on volume of transactions, number of Demat accounts, foreign asset disclosure, notices / assessments, or additional advisory work. Any increase shall be communicated before commencement of additional work.';
-        const noteLines = doc.splitTextToSize(noteText, CW);
-        doc.text(noteLines, ML, y);
-        y += noteLines.length * 4.2 + 4;
-        hrule(y, RULE, 0.2);
-
-        // ── FOOTER ─────────────────────────────────────────────────
-        setFont('normal', 7, MID);
-        doc.text('Generated by DAIS Internal Fee Tool', ML, PH - 10);
-        doc.text('DAIS Advisors Private Limited  ·  www.daisadvisors.com', PW - MR, PH - 10, { align: 'right' });
-        hrule(PH - 12, RULE, 0.2);
-
-        // ── SAVE ───────────────────────────────────────────────────
-        const fn = 'DAIS_Fee_Quotation_' +
-            (d.client || 'Client').replace(/\s+/g,'_') + '_' +
-            (d.ay || 'AY').replace(/\s+/g,'') + '_' +
-            new Date().getFullYear() +
-            String(new Date().getMonth()+1).padStart(2,'0') +
-            String(new Date().getDate()).padStart(2,'0') + '.pdf';
-        doc.save(fn);
-    }
-
-    // Load logo as base64 for reliable embedding
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = function() {
-        try {
-            const c = document.createElement('canvas');
-            c.width = img.naturalWidth; c.height = img.naturalHeight;
-            c.getContext('2d').drawImage(img, 0, 0);
-            drawHeader(c.toDataURL('image/png'));
-        } catch(e) { drawHeader(null); }
-    };
-    img.onerror = function() { drawHeader(null); };
-    img.src = 'LOGO_WHATAPP.png?' + Date.now();
-}
-
-// ── PENDING CASES PANEL ───────────────────────────────────────────────────
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzfXWWOwgBQMtEWnCXTmRqJjyDZSPvx5QNtpv4N_BwXhEj3-fMqyUJtB1RKrgUa9IsAMA/exec';
-
-function showPendingCases() {
-    // Build overlay
-    const overlay = document.createElement('div');
-    overlay.id = 'pending-overlay';
-    overlay.style.cssText = `
-        position:fixed; top:0; left:0; width:100%; height:100%;
-        background:rgba(0,0,0,0.6); z-index:9999;
-        display:flex; align-items:center; justify-content:center;
-        padding:16px; box-sizing:border-box;`;
-
-    overlay.innerHTML = `
-        <div style="background:#fff; border-radius:12px; width:100%; max-width:820px;
-                    max-height:88vh; display:flex; flex-direction:column;
-                    box-shadow:0 12px 48px rgba(0,0,0,0.3); overflow:hidden;">
-
-            <!-- Header -->
-            <div style="background:#0b2f57; padding:18px 24px;
-                        display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div style="color:#fff; font-size:16px; font-weight:bold;">
-                        📋 Pending Fee Cases
-                    </div>
-                    <div style="color:#FFC000; font-size:11px; margin-top:3px;">
-                        Quotations sent — payment not yet received
-                    </div>
-                </div>
-                <button onclick="document.getElementById('pending-overlay').remove()"
-                    style="background:rgba(255,255,255,0.15); border:none; color:#fff;
-                           width:32px; height:32px; border-radius:50%; font-size:18px;
-                           cursor:pointer; line-height:1;">✕</button>
-            </div>
-
-            <!-- Body -->
-            <div id="pending-body" style="padding:24px; overflow-y:auto; flex:1;">
-                <div style="text-align:center; padding:40px; color:#888;">
-                    <div style="font-size:28px; margin-bottom:10px;">⏳</div>
-                    Loading pending cases...
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div id="pending-footer" style="padding:12px 24px; background:#f8f9fa;
-                         border-top:1px solid #eee; font-size:11px; color:#999;
-                         display:flex; justify-content:space-between; align-items:center;">
-                <span id="pending-count"></span>
-                <span id="pending-total" style="font-weight:bold; color:#0b2f57;"></span>
-            </div>
-        </div>`;
-
-    document.body.appendChild(overlay);
-
-    // Close on backdrop click
-    overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) overlay.remove();
+  // Complexity
+  if(d.complexity.trim()){
+    addSectionTitle('Complexity Factors');
+    const tmp2=document.createElement('ul');tmp2.innerHTML=d.complexity;
+    tmp2.querySelectorAll('li').forEach(li=>{
+      setFont('normal',8,[50,50,50]);doc.text('• '+li.textContent,ml+3,y);y+=5;
+      if(y>260){doc.addPage();y=20;}
     });
+    setFont('italic',8,gray);doc.text('Overall Complexity: '+d.risk,ml,y);y+=7;
+  }
 
-    // Fetch pending cases
-    fetch(`${SCRIPT_URL}?key=${encodeURIComponent(window._sessionKey || '')}`)
-        .then(r => r.json())
-        .then(res => {
-            const body = document.getElementById('pending-body');
+  // Scope
+  addSectionTitle('Scope of Services');
+  const tmp3=document.createElement('ul');tmp3.innerHTML=d.scope;
+  tmp3.querySelectorAll('li').forEach(li=>{
+    setFont('normal',8,[50,50,50]);doc.text('✓ '+li.textContent,ml+3,y);y+=5;
+    if(y>260){doc.addPage();y=20;}
+  });
 
-            if (res.status === 'unauthorized') {
-                body.innerHTML = `<div style="text-align:center; padding:40px; color:#c00;">
-                    🔒 Unauthorized. Invalid secret key.</div>`;
-                return;
-            }
+  // Fee table
+  if(y>240){doc.addPage();y=20;}
+  addSectionTitle('Fee Computation');
+  const feeRows=[['Base Professional Fee ('+d.itr+')',d.base],['Complexity Loading',d.load],['Total Recommended Fee',d.total]];
+  feeRows.forEach((fr,i)=>{
+    if(i===feeRows.length-1){doc.setFillColor(240,247,255);doc.rect(ml,y-4,mr-ml,8,'F');}
+    setFont(i===feeRows.length-1?'bold':'normal',9,i===feeRows.length-1?navy:[50,50,50]);
+    doc.text(fr[0],ml+3,y);doc.text(fr[1],mr-3,y,{align:'right'});
+    y+=8;
+  });
 
-            const rows = res.data || [];
+  // Disclaimer
+  if(y>240){doc.addPage();y=20;}
+  addSectionTitle('Disclaimer');
+  setFont('normal',7,[100,100,100]);
+  const disc=['All statutory dues and penalties shall be borne by the client.',
+    'Fees may increase based on actual transaction volume and complexity.',
+    'Any increase will be communicated prior to commencement of additional work.',
+    'This quotation is valid for 30 days from the date of issuance.'];
+  disc.forEach(line=>{doc.text('• '+line,ml+3,y);y+=5;});
 
-            if (rows.length === 0) {
-                body.innerHTML = `<div style="text-align:center; padding:40px; color:#888;">
-                    <div style="font-size:32px; margin-bottom:10px;">🎉</div>
-                    <div style="font-size:15px; font-weight:bold; color:#2e7d32;">
-                        No pending cases!</div>
-                    <div style="font-size:12px; margin-top:6px;">
-                        All quotations have been paid.</div></div>`;
-                return;
-            }
+  // Footer
+  y=280;hrule(y,navy,0.4);y+=5;
+  setFont('normal',8,gray);doc.text('Generated by DAIS Internal Fee Tool V4.0',ml,y);
+  doc.text('For, DAIS Advisors Private Limited',mr,y,{align:'right'});
 
-            // Calculate total pending amount
-            const totalPending = rows.reduce((sum, r) => sum + (parseInt(r.total) || 0), 0);
-            document.getElementById('pending-count').textContent =
-                `${rows.length} case${rows.length > 1 ? 's' : ''} pending`;
-            document.getElementById('pending-total').textContent =
-                `Total Pending: ₹${totalPending.toLocaleString('en-IN')}`;
-
-            // Build table
-            let html = `
-                <table style="width:100%; border-collapse:collapse; font-size:12px;">
-                    <thead>
-                        <tr style="background:#0b2f57; color:#fff;">
-                            <th style="padding:10px 8px; text-align:left;">#</th>
-                            <th style="padding:10px 8px; text-align:left;">Date</th>
-                            <th style="padding:10px 8px; text-align:left;">Client Name</th>
-                            <th style="padding:10px 8px; text-align:left;">Mobile</th>
-                            <th style="padding:10px 8px; text-align:center;">AY</th>
-                            <th style="padding:10px 8px; text-align:center;">ITR</th>
-                            <th style="padding:10px 8px; text-align:right;">Fee (₹)</th>
-                            <th style="padding:10px 8px; text-align:center;">Staff</th>
-                            <th style="padding:10px 8px; text-align:center;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-
-            rows.forEach((r, i) => {
-                const bg = i % 2 === 0 ? '#f8f9fa' : '#fff';
-                html += `
-                    <tr style="background:${bg}; border-bottom:1px solid #eee;">
-                        <td style="padding:10px 8px; color:#888;">${r.serial}</td>
-                        <td style="padding:10px 8px;">${r.date}</td>
-                        <td style="padding:10px 8px; font-weight:bold; color:#0b2f57;">
-                            ${r.client}</td>
-                        <td style="padding:10px 8px;">${r.mobile}</td>
-                        <td style="padding:10px 8px; text-align:center;">${r.ay}</td>
-                        <td style="padding:10px 8px; text-align:center;">
-                            <span style="background:#e3edf7; color:#0b2f57; padding:2px 8px;
-                                         border-radius:4px; font-size:11px; font-weight:bold;">
-                                ${r.itr}</span></td>
-                        <td style="padding:10px 8px; text-align:right; font-weight:bold;
-                                   color:#0b2f57;">
-                            ₹${parseInt(r.total).toLocaleString('en-IN')}</td>
-                        <td style="padding:10px 8px; text-align:center;
-                                   color:#555;">${r.staff}</td>
-                        <td style="padding:10px 8px; text-align:center;">
-                            <button onclick="markPaidFromList('${r.rowId}', '${r.client}', this)"
-                                style="background:#2e7d32; color:#fff; border:none;
-                                       padding:5px 12px; border-radius:5px;
-                                       font-size:11px; cursor:pointer; white-space:nowrap;">
-                                ✓ Mark Paid</button>
-                        </td>
-                    </tr>`;
-            });
-
-            html += '</tbody></table>';
-            body.innerHTML = html;
-        })
-        .catch(err => {
-            document.getElementById('pending-body').innerHTML = `
-                <div style="text-align:center; padding:40px; color:#c00;">
-                    ⚠ Could not load data. Check your internet connection.<br>
-                    <small style="color:#aaa; margin-top:8px; display:block;">
-                        ${err.message}</small></div>`;
-        });
+  doc.save(`Fee_Quote_${d.client.replace(/\s+/g,'_')}_${d.date.replace(/\//g,'-')}.pdf`);
 }
 
-function markPaidFromList(rowId, clientName, btn) {
-    // Reference input modal
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-        position:fixed; top:0; left:0; width:100%; height:100%;
-        background:rgba(0,0,0,0.7); z-index:10000;
-        display:flex; align-items:center; justify-content:center;`;
+// ── BILLING DASHBOARD ──────────────────────────────────────────────────────
+async function showBillingDashboard() {
+  if(window._sessionUser?.toLowerCase() !== 'ankit') {
+    showToast('Access restricted to Ankit only', '#c53030'); return;
+  }
 
-    modal.innerHTML = `
-        <div style="background:#fff; border-radius:10px; padding:28px;
-                    width:360px; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
-            <div style="font-size:15px; font-weight:bold; color:#0b2f57; margin-bottom:4px;">
-                Mark as Paid</div>
-            <div style="font-size:12px; color:#555; margin-bottom:16px;">
-                Client: <strong>${clientName}</strong>
-            </div>
-            <label style="font-size:12px; font-weight:bold; color:#333;">
-                Payment Reference No. <span style="color:red;">*</span>
-            </label>
-            <input id="list-ref-input" type="text"
-                placeholder="e.g. UTR324567891234 / IMPS ref"
-                style="width:100%; margin-top:6px; padding:10px 12px;
-                       border:1.5px solid #ccc; border-radius:6px;
-                       font-size:13px; box-sizing:border-box; outline:none;"
-                onfocus="this.style.borderColor='#0b2f57'"
-                onblur="this.style.borderColor='#ccc'">
-            <div id="list-ref-error" style="color:red; font-size:11px;
-                                            margin-top:4px; display:none;">
-                Please enter a reference number.
-            </div>
-            <div style="display:flex; gap:10px; margin-top:18px;">
-                <button id="list-confirm-btn"
-                    onclick="submitPaidFromList('${rowId}', this)"
-                    style="flex:1; padding:10px; background:#2e7d32; color:#fff;
-                           border:none; border-radius:6px; font-size:13px;
-                           font-weight:bold; cursor:pointer;">
-                    ✓ Confirm Payment
-                </button>
-                <button onclick="this.closest('div[style*=fixed]').remove()"
-                    style="flex:1; padding:10px; background:#f5f5f5; color:#555;
-                           border:1px solid #ddd; border-radius:6px;
-                           font-size:13px; cursor:pointer;">
-                    Cancel
-                </button>
-            </div>
-        </div>`;
+  // Remove if already open
+  const ex = document.getElementById('billing-dashboard');
+  if(ex) { ex.remove(); return; }
 
-    document.body.appendChild(modal);
-    document.getElementById('list-ref-input').focus();
+  const dash = document.createElement('div');
+  dash.id = 'billing-dashboard';
+  dash.className = 'bill-fullscreen';
+  dash.innerHTML = `
+    <div class="bill-topbar">
+      <div>
+        <h2>💰 Billing Dashboard</h2>
+        <div style="font-size:11px;opacity:0.6;margin-top:2px;">DAIS Advisors — Fee Quotation Analytics</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <select id="bill-filter-ay" onchange="refreshBilling()" style="padding:7px 12px;border-radius:6px;border:none;font-size:12px;">
+          <option value="">All Years</option>
+          <option value="AY 2026-27" selected>AY 2026-27</option>
+          <option value="AY 2025-26">AY 2025-26</option>
+        </select>
+        <button onclick="refreshBilling()" style="padding:8px 16px;background:#FFC000;color:#053D70;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;">🔄 Refresh</button>
+        <button onclick="document.getElementById('billing-dashboard').remove()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;">✕</button>
+      </div>
+    </div>
+    <div class="bill-content">
+      <!-- KPI Stats -->
+      <div class="stat-row" id="bill-stats">
+        <div class="stat-box"><div class="num" id="b-total-cases" style="color:#053D70;">—</div><div class="lbl">Total Quotations</div></div>
+        <div class="stat-box"><div class="num" id="b-total-billed" style="color:#053D70;">—</div><div class="lbl">Total Billed (₹)</div></div>
+        <div class="stat-box"><div class="num" id="b-total-received" style="color:#2e7d32;">—</div><div class="lbl">Amount Received (₹)</div></div>
+        <div class="stat-box"><div class="num" id="b-total-pending-amt" style="color:#856404;">—</div><div class="lbl">Pending Amount (₹)</div></div>
+        <div class="stat-box"><div class="num" id="b-paid-cases" style="color:#2e7d32;">—</div><div class="lbl">Paid Cases</div></div>
+        <div class="stat-box"><div class="num" id="b-pending-cases" style="color:#856404;">—</div><div class="lbl">Pending Cases</div></div>
+        <div class="stat-box"><div class="num" id="b-conversion" style="color:#053D70;">—</div><div class="lbl">Collection Rate</div></div>
+        <div class="stat-box"><div class="num" id="b-avg-fee" style="color:#053D70;">—</div><div class="lbl">Avg. Fee (₹)</div></div>
+      </div>
 
-    // Store reference to the table button for UI update
-    modal._tableBtn = btn;
+      <!-- Tabs -->
+      <div class="bill-tabs">
+        <button class="bill-tab active" onclick="switchBillTab('overview',this)">📊 Overview</button>
+        <button class="bill-tab" onclick="switchBillTab('all',this)">📋 All Quotations</button>
+        <button class="bill-tab" onclick="switchBillTab('pending',this)">⏳ Pending</button>
+        <button class="bill-tab" onclick="switchBillTab('paid',this)">✅ Paid</button>
+        <button class="bill-tab" onclick="switchBillTab('staff',this)">👥 Staff Analysis</button>
+        <button class="bill-tab" onclick="switchBillTab('itr',this)">📂 ITR Type</button>
+      </div>
+
+      <!-- Overview Tab -->
+      <div class="bill-tab-content active" id="bill-tab-overview">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div style="background:#fff;border-radius:10px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+            <div style="font-weight:700;color:#053D70;margin-bottom:14px;font-size:13px;">📅 Day-wise Collection</div>
+            <div id="chart-daily"></div>
+          </div>
+          <div style="background:#fff;border-radius:10px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+            <div style="font-weight:700;color:#053D70;margin-bottom:14px;font-size:13px;">📊 Status Breakdown</div>
+            <div id="chart-status"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- All Quotations Tab -->
+      <div class="bill-tab-content" id="bill-tab-all">
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+          <input type="text" id="bill-search" placeholder="Search client / staff / ITR type..." 
+            style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid #dde3ea;border-radius:6px;font-size:12px;"
+            oninput="filterBillTable()">
+          <button onclick="exportBillCSV()" style="padding:8px 14px;background:#053D70;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">⬇ Export CSV</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="bill-table" id="bill-all-table">
+            <thead><tr>
+              <th>#</th><th>Date</th><th>Client</th><th>Mobile</th>
+              <th>AY</th><th>ITR</th><th>Base (₹)</th><th>Loading (₹)</th>
+              <th>Total (₹)</th><th>Staff</th><th>Complexity</th><th>Status</th><th>Ref</th>
+            </tr></thead>
+            <tbody id="bill-all-body"><tr><td colspan="13" style="text-align:center;padding:20px;color:#888;">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pending Tab -->
+      <div class="bill-tab-content" id="bill-tab-pending">
+        <div style="overflow-x:auto;">
+          <table class="bill-table" id="bill-pending-table">
+            <thead><tr>
+              <th>Date</th><th>Client</th><th>Mobile</th><th>ITR</th>
+              <th>Total Fee (₹)</th><th>Staff</th><th>Action</th>
+            </tr></thead>
+            <tbody id="bill-pending-body"><tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:#888;" id="bill-pending-total"></div>
+      </div>
+
+      <!-- Paid Tab -->
+      <div class="bill-tab-content" id="bill-tab-paid">
+        <div style="overflow-x:auto;">
+          <table class="bill-table">
+            <thead><tr>
+              <th>Date</th><th>Client</th><th>Mobile</th><th>ITR</th>
+              <th>Total Fee (₹)</th><th>Staff</th><th>Paid On</th><th>Ref / UTR</th>
+            </tr></thead>
+            <tbody id="bill-paid-body"><tr><td colspan="8" style="text-align:center;padding:20px;color:#888;">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:#888;" id="bill-paid-total"></div>
+      </div>
+
+      <!-- Staff Analysis Tab -->
+      <div class="bill-tab-content" id="bill-tab-staff">
+        <div style="background:#fff;border-radius:10px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px;">
+          <div style="font-weight:700;color:#053D70;margin-bottom:14px;">Staff Performance</div>
+          <div style="overflow-x:auto;">
+            <table class="bill-table" id="bill-staff-table">
+              <thead><tr>
+                <th>Staff</th><th>Total Cases</th><th>Paid</th><th>Pending</th>
+                <th>Total Billed (₹)</th><th>Collected (₹)</th><th>Collection %</th>
+              </tr></thead>
+              <tbody id="bill-staff-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+          <div style="font-weight:700;color:#053D70;margin-bottom:14px;">Billed Amount by Staff</div>
+          <div id="chart-staff"></div>
+        </div>
+      </div>
+
+      <!-- ITR Type Tab -->
+      <div class="bill-tab-content" id="bill-tab-itr">
+        <div style="background:#fff;border-radius:10px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px;">
+          <div style="font-weight:700;color:#053D70;margin-bottom:14px;">ITR Type Breakdown</div>
+          <div style="overflow-x:auto;">
+            <table class="bill-table">
+              <thead><tr>
+                <th>ITR Type</th><th>Cases</th><th>Total Billed (₹)</th>
+                <th>Collected (₹)</th><th>Pending (₹)</th><th>Avg Fee (₹)</th>
+              </tr></thead>
+              <tbody id="bill-itr-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+          <div style="font-weight:700;color:#053D70;margin-bottom:14px;">Cases by ITR Type</div>
+          <div id="chart-itr"></div>
+        </div>
+      </div>
+
+    </div>`;
+  document.body.appendChild(dash);
+  await refreshBilling();
 }
 
-function submitPaidFromList(rowId, confirmBtn) {
-    const ref = document.getElementById('list-ref-input').value.trim();
-    if (!ref) {
-        document.getElementById('list-ref-error').style.display = 'block';
-        return;
-    }
-
-    confirmBtn.textContent = 'Saving...';
-    confirmBtn.disabled = true;
-
-    fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'markPaid', rowId, reference: ref })
-    }).then(() => {
-        // Close modal
-        const modal = confirmBtn.closest('div[style*="z-index: 10000"], div[style*="z-index:10000"]');
-        if (modal) modal.remove();
-
-        // Update the row in the pending table
-        const tableBtn = document.querySelector(`button[onclick*="${rowId}"]`);
-        if (tableBtn) {
-            const row = tableBtn.closest('tr');
-            tableBtn.textContent = '✓ Paid';
-            tableBtn.style.background = '#888';
-            tableBtn.disabled = true;
-            row.style.opacity = '0.45';
-            row.style.textDecoration = 'line-through';
-        }
-
-        // Update footer count
-        const remaining = document.querySelectorAll(
-            '#pending-body tbody tr:not([style*="line-through"])').length - 1;
-        if (remaining <= 0) {
-            document.getElementById('pending-count').textContent = 'All cases cleared!';
-            document.getElementById('pending-total').textContent = '';
-        } else {
-            document.getElementById('pending-count').textContent =
-                `${remaining} case${remaining > 1 ? 's' : ''} pending`;
-        }
-
-        // Toast
-        const toast = document.createElement('div');
-        toast.textContent = `✓ Payment recorded  |  Ref: ${ref}`;
-        toast.style.cssText = `
-            position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
-            background:#2e7d32; color:#fff; padding:12px 24px;
-            border-radius:8px; font-size:13px; font-weight:bold;
-            box-shadow:0 4px 16px rgba(0,0,0,0.2); z-index:99999;`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-    }).catch(() => {
-        confirmBtn.textContent = '✓ Confirm Payment';
-        confirmBtn.disabled = false;
-        alert('Network error. Please try again.');
-    });
+function switchBillTab(tab, btn) {
+  document.querySelectorAll('.bill-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.bill-tab-content').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('bill-tab-'+tab).classList.add('active');
 }
 
+let _billData = [];
+
+async function refreshBilling() {
+  const ay = document.getElementById('bill-filter-ay')?.value || '';
+  const filter = ay ? `&ay=eq.${encodeURIComponent(ay)}` : '';
+  try {
+    _billData = await sbSelect(filter);
+    renderBillingStats(_billData);
+    renderBillingAllTable(_billData);
+    renderBillingPending(_billData);
+    renderBillingPaid(_billData);
+    renderBillingStaff(_billData);
+    renderBillingITR(_billData);
+    renderCharts(_billData);
+  } catch(e) {
+    showToast('Error loading billing data: '+e.message, '#c53030');
+  }
+}
+
+function fmt(v) { return '₹'+(v||0).toLocaleString('en-IN'); }
+function pct(a,b) { return b?Math.round(a/b*100)+'%':'0%'; }
+
+function renderBillingStats(rows) {
+  const total     = rows.length;
+  const paid      = rows.filter(r=>r.status==='Paid');
+  const pending   = rows.filter(r=>r.status!=='Paid');
+  const totalAmt  = rows.reduce((s,r)=>s+(r.total_fee||0),0);
+  const paidAmt   = paid.reduce((s,r)=>s+(r.total_fee||0),0);
+  const pendAmt   = pending.reduce((s,r)=>s+(r.total_fee||0),0);
+  const avg       = total?Math.round(totalAmt/total):0;
+
+  document.getElementById('b-total-cases').textContent      = total;
+  document.getElementById('b-total-billed').textContent     = fmt(totalAmt);
+  document.getElementById('b-total-received').textContent   = fmt(paidAmt);
+  document.getElementById('b-total-pending-amt').textContent= fmt(pendAmt);
+  document.getElementById('b-paid-cases').textContent       = paid.length;
+  document.getElementById('b-pending-cases').textContent    = pending.length;
+  document.getElementById('b-conversion').textContent       = pct(paid.length,total);
+  document.getElementById('b-avg-fee').textContent          = fmt(avg);
+}
+
+function renderBillingAllTable(rows) {
+  const tbody = document.getElementById('bill-all-body');
+  if(!rows.length){ tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:20px;color:#888;">No records found</td></tr>'; return; }
+  tbody.innerHTML = rows.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${r.date||'—'}</td>
+      <td style="font-weight:600;">${r.client_name||'—'}</td>
+      <td>${r.mobile||'—'}</td>
+      <td>${r.ay||'—'}</td>
+      <td><b>${r.itr_type||'—'}</b></td>
+      <td>₹${(r.base_fee||0).toLocaleString('en-IN')}</td>
+      <td>₹${(r.loading||0).toLocaleString('en-IN')}</td>
+      <td style="font-weight:700;color:#053D70;">₹${(r.total_fee||0).toLocaleString('en-IN')}</td>
+      <td>${r.staff||'—'}</td>
+      <td><span style="font-size:11px;color:${r.complexity==='HIGH'?'#c53030':r.complexity==='MODERATE'?'#856404':'#155724'};font-weight:600;">${r.complexity||'—'}</span></td>
+      <td><span class="${r.status==='Paid'?'badge-paid':'badge-pending'}">${r.status||'Pending'}</span></td>
+      <td style="font-size:11px;color:#888;">${r.payment_ref||'—'}</td>
+    </tr>`).join('');
+}
+
+function filterBillTable() {
+  const q = document.getElementById('bill-search').value.toLowerCase();
+  const filtered = q ? _billData.filter(r=>
+    (r.client_name||'').toLowerCase().includes(q)||
+    (r.staff||'').toLowerCase().includes(q)||
+    (r.itr_type||'').toLowerCase().includes(q)||
+    (r.mobile||'').includes(q)
+  ) : _billData;
+  renderBillingAllTable(filtered);
+}
+
+function renderBillingPending(rows) {
+  const pending = rows.filter(r=>r.status!=='Paid');
+  const tbody = document.getElementById('bill-pending-body');
+  const total = pending.reduce((s,r)=>s+(r.total_fee||0),0);
+  if(!pending.length){ tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:#155724;">🎉 No pending cases!</td></tr>'; return; }
+  tbody.innerHTML = pending.map(r=>`
+    <tr>
+      <td>${r.date||'—'}</td>
+      <td style="font-weight:600;">${r.client_name||'—'}</td>
+      <td>${r.mobile||'—'}</td>
+      <td><b>${r.itr_type||'—'}</b></td>
+      <td style="font-weight:700;color:#856404;">₹${(r.total_fee||0).toLocaleString('en-IN')}</td>
+      <td>${r.staff||'—'}</td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <input id="putr-${r.row_id}" type="text" placeholder="UTR/Ref" style="width:120px;padding:5px 8px;font-size:11px;border:1px solid #ddd;border-radius:4px;">
+          <button onclick="markPaidFromBilling('${r.row_id}',this)" style="padding:5px 10px;background:#2e7d32;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;">✓ Mark Paid</button>
+        </div>
+      </td>
+    </tr>`).join('');
+  document.getElementById('bill-pending-total').textContent = `Total Pending: ${pending.length} cases | ₹${total.toLocaleString('en-IN')}`;
+}
+
+function renderBillingPaid(rows) {
+  const paid = rows.filter(r=>r.status==='Paid');
+  const tbody = document.getElementById('bill-paid-body');
+  const total = paid.reduce((s,r)=>s+(r.total_fee||0),0);
+  if(!paid.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:#888;">No paid cases yet</td></tr>'; return; }
+  tbody.innerHTML = paid.map(r=>`
+    <tr>
+      <td>${r.date||'—'}</td>
+      <td style="font-weight:600;">${r.client_name||'—'}</td>
+      <td>${r.mobile||'—'}</td>
+      <td><b>${r.itr_type||'—'}</b></td>
+      <td style="font-weight:700;color:#2e7d32;">₹${(r.total_fee||0).toLocaleString('en-IN')}</td>
+      <td>${r.staff||'—'}</td>
+      <td>${r.paid_at||'—'}</td>
+      <td style="font-size:11px;color:#053D70;font-weight:600;">${r.payment_ref||'—'}</td>
+    </tr>`).join('');
+  document.getElementById('bill-paid-total').textContent = `Total Collected: ${paid.length} cases | ₹${total.toLocaleString('en-IN')}`;
+}
+
+function renderBillingStaff(rows) {
+  const staffMap = {};
+  rows.forEach(r=>{
+    const s = r.staff||'N/A';
+    if(!staffMap[s]) staffMap[s]={total:0,paid:0,pending:0,billed:0,collected:0};
+    staffMap[s].total++;
+    staffMap[s].billed += r.total_fee||0;
+    if(r.status==='Paid'){ staffMap[s].paid++; staffMap[s].collected += r.total_fee||0; }
+    else staffMap[s].pending++;
+  });
+  const tbody = document.getElementById('bill-staff-body');
+  tbody.innerHTML = Object.entries(staffMap).sort((a,b)=>b[1].billed-a[1].billed).map(([s,d])=>`
+    <tr>
+      <td style="font-weight:600;">${s}</td>
+      <td>${d.total}</td>
+      <td style="color:#155724;font-weight:600;">${d.paid}</td>
+      <td style="color:#856404;font-weight:600;">${d.pending}</td>
+      <td>₹${d.billed.toLocaleString('en-IN')}</td>
+      <td style="color:#2e7d32;font-weight:600;">₹${d.collected.toLocaleString('en-IN')}</td>
+      <td>${pct(d.collected,d.billed)}</td>
+    </tr>`).join('');
+
+  // Staff bar chart
+  const maxB = Math.max(...Object.values(staffMap).map(d=>d.billed),1);
+  document.getElementById('chart-staff').innerHTML = Object.entries(staffMap)
+    .sort((a,b)=>b[1].billed-a[1].billed)
+    .map(([s,d])=>`
+      <div class="chart-bar">
+        <div class="chart-bar-label">${s}</div>
+        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(d.billed/maxB*100)}%;background:#053D70;"></div></div>
+        <div class="chart-bar-num">₹${(d.billed/1000).toFixed(1)}k</div>
+      </div>`).join('');
+}
+
+function renderBillingITR(rows) {
+  const itrMap = {};
+  rows.forEach(r=>{
+    const t = r.itr_type||'Unknown';
+    if(!itrMap[t]) itrMap[t]={cases:0,billed:0,collected:0,pending:0};
+    itrMap[t].cases++;
+    itrMap[t].billed += r.total_fee||0;
+    if(r.status==='Paid') itrMap[t].collected += r.total_fee||0;
+    else itrMap[t].pending += r.total_fee||0;
+  });
+  const tbody = document.getElementById('bill-itr-body');
+  tbody.innerHTML = Object.entries(itrMap).sort((a,b)=>b[1].cases-a[1].cases).map(([t,d])=>`
+    <tr>
+      <td style="font-weight:700;color:#053D70;">${t}</td>
+      <td>${d.cases}</td>
+      <td>₹${d.billed.toLocaleString('en-IN')}</td>
+      <td style="color:#2e7d32;font-weight:600;">₹${d.collected.toLocaleString('en-IN')}</td>
+      <td style="color:#856404;font-weight:600;">₹${d.pending.toLocaleString('en-IN')}</td>
+      <td>₹${d.cases?Math.round(d.billed/d.cases).toLocaleString('en-IN'):'0'}</td>
+    </tr>`).join('');
+
+  const colors = {'ITR-1':'#0EA5E9','ITR-2':'#053D70','ITR-3':'#FFC000','ITR-4':'#2e7d32'};
+  const maxC = Math.max(...Object.values(itrMap).map(d=>d.cases),1);
+  document.getElementById('chart-itr').innerHTML = Object.entries(itrMap)
+    .sort((a,b)=>b[1].cases-a[1].cases)
+    .map(([t,d])=>`
+      <div class="chart-bar">
+        <div class="chart-bar-label">${t}</div>
+        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(d.cases/maxC*100)}%;background:${colors[t]||'#888'};"></div></div>
+        <div class="chart-bar-num">${d.cases} cases</div>
+      </div>`).join('');
+}
+
+function renderCharts(rows) {
+  // Daily chart
+  const dayMap = {};
+  rows.forEach(r=>{ const d=r.date||'Unknown'; dayMap[d]=(dayMap[d]||0)+(r.total_fee||0); });
+  const maxD = Math.max(...Object.values(dayMap),1);
+  document.getElementById('chart-daily').innerHTML = Object.entries(dayMap)
+    .sort((a,b)=>new Date(a[0].split('/').reverse().join('-'))-new Date(b[0].split('/').reverse().join('-')))
+    .map(([d,v])=>`
+      <div class="chart-bar">
+        <div class="chart-bar-label" style="font-size:11px;">${d}</div>
+        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(v/maxD*100)}%;background:#FFC000;"></div></div>
+        <div class="chart-bar-num">₹${(v/1000).toFixed(1)}k</div>
+      </div>`).join('') || '<div style="color:#888;font-size:12px;">No data</div>';
+
+  // Status breakdown
+  const paid    = rows.filter(r=>r.status==='Paid').length;
+  const pending = rows.length - paid;
+  const total   = rows.length || 1;
+  document.getElementById('chart-status').innerHTML = `
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;">
+        <span>✅ Paid</span><span style="font-weight:700;color:#2e7d32;">${paid} cases</span>
+      </div>
+      <div style="background:#e8f0f8;border-radius:6px;height:28px;overflow:hidden;">
+        <div style="width:${pct(paid,total)};background:#2e7d32;height:100%;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;min-width:30px;">${pct(paid,total)}</div>
+      </div>
+    </div>
+    <div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;">
+        <span>⏳ Pending</span><span style="font-weight:700;color:#856404;">${pending} cases</span>
+      </div>
+      <div style="background:#e8f0f8;border-radius:6px;height:28px;overflow:hidden;">
+        <div style="width:${pct(pending,total)};background:#FFC000;height:100%;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#053D70;font-size:12px;font-weight:700;min-width:30px;">${pct(pending,total)}</div>
+      </div>
+    </div>`;
+}
+
+async function markPaidFromBilling(rowId, btn) {
+  const ref = document.getElementById('putr-'+rowId)?.value.trim();
+  if(!ref) { showToast('Please enter UTR/Ref number', '#856404'); return; }
+  btn.textContent = '…'; btn.disabled = true;
+  try {
+    await sbUpdate(rowId, { status:'Paid', payment_ref:ref, paid_at:new Date().toLocaleDateString('en-IN') });
+    showToast('✓ Marked as Paid — Ref: '+ref);
+    await refreshBilling();
+  } catch(e) {
+    showToast('Error: '+e.message, '#c53030');
+    btn.textContent = '✓ Mark Paid'; btn.disabled = false;
+  }
+}
+
+function exportBillCSV() {
+  const headers = ['#','Date','Client','Mobile','AY','ITR','Base','Loading','Total','Staff','Complexity','Status','Payment Ref','Paid On'];
+  const rows = _billData.map((r,i)=>[
+    i+1, r.date, r.client_name, r.mobile, r.ay, r.itr_type,
+    r.base_fee, r.loading, r.total_fee, r.staff, r.complexity,
+    r.status, r.payment_ref||'', r.paid_at||''
+  ]);
+  const csv = [headers, ...rows].map(r=>r.map(v=>'"'+(v||'')+'"').join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `DAIS_Billing_${new Date().toLocaleDateString('en-IN').replace(/\//g,'-')}.csv`;
+  a.click();
+  showToast('CSV exported!');
+}
 </script>
-
-<!-- jsPDF — pure draw-call PDF, no screenshot rendering -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
-  onerror="this.onerror=null;var s=document.createElement('script');s.src='https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js';document.head.appendChild(s);"></script>
-</body></html>
+</body>
+</html>
